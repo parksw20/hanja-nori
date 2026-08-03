@@ -141,6 +141,99 @@ body {
   flex-wrap: wrap;
 }
 
+/* ── 상품 모달 (짜잔!) ─────────────────────────────────── */
+
+.hn-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 12, 26, 0.78);
+  animation: hn-modal-fade 0.18s ease;
+}
+
+.hn-modal--out {
+  animation: hn-modal-fade 0.18s ease reverse;
+}
+
+@keyframes hn-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.hn-modal__box {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 26px 28px 22px;
+  border-radius: 22px;
+  border: 2px solid var(--hn-accent);
+  background: linear-gradient(160deg, #2c2a1d, var(--hn-card));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  animation: hn-modal-pop 0.32s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+@keyframes hn-modal-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.hn-modal__tada {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--hn-accent);
+  animation: hn-tada 0.7s ease;
+}
+
+@keyframes hn-tada {
+  0% { transform: scale(0.4) rotate(-12deg); opacity: 0; }
+  55% { transform: scale(1.25) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* 카드가 크게 나타났다가 카드 크기로 줄어든다 — "받았다"가 눈에 박히게 */
+.hn-modal__card {
+  display: grid;
+  place-items: center;
+  width: 132px;
+  height: 180px;
+  border-radius: 16px;
+  border: 3px solid var(--hn-accent);
+  background: linear-gradient(160deg, #4a4225, #2b3352);
+  box-shadow: 0 0 30px rgba(255, 209, 102, 0.35);
+  animation: hn-card-in 0.75s cubic-bezier(0.18, 1.3, 0.35, 1);
+}
+
+@keyframes hn-card-in {
+  0% { transform: scale(2.1) rotate(-14deg); opacity: 0; }
+  35% { transform: scale(1.7) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.hn-modal__char {
+  font-size: 5rem;
+  line-height: 1;
+  color: var(--hn-accent);
+}
+
+.hn-modal__title {
+  margin: 6px 0 0;
+  font-size: 1.4rem;
+}
+
+.hn-modal__line {
+  margin: 0;
+  color: var(--hn-ink-dim);
+}
+
+.hn-modal__ok {
+  margin-top: 12px;
+  min-width: 140px;
+}
+
 .hn-toast {
   position: fixed;
   left: 50%;
@@ -743,56 +836,91 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.bx-board {
+/*
+  3D 판. 2D 격자로는 블록이 서 있는지 누웠는지 알 수 없어서 실제로 입체를 세운다.
+  .bx-view 가 카메라(perspective), .bx-scene 이 기울인 바닥판, .bx-face 가 각 면.
+  면의 위치·크기는 JS가 px로 넣는다 (칸 크기가 화면 폭에 따라 달라지므로).
+*/
+.bx-view {
+  perspective: 1100px;
   display: grid;
-  gap: 4px;
-  padding: 10px;
+  place-items: center;
+  width: min(94vw, 460px);
   border-radius: var(--hn-radius);
   border: 1px solid var(--hn-line);
-  background: var(--hn-bg-2);
-  /* 칸이 몇 개든 판 전체가 화면에 들어오게 */
-  width: min(92vw, 420px);
+  background: radial-gradient(120% 90% at 50% 20%, #232e55, var(--hn-bg-2));
+  overflow: hidden;
 }
 
-.bx-board--fall {
+.bx-scene {
+  position: relative;
+  transform-style: preserve-3d;
+  /* 기울기(58도)는 bloxorz.ts의 TILT와 같아야 한다 — 높이 계산이 이 값에 물려 있다 */
+  transform: rotateX(58deg) rotateZ(-45deg);
+  transition: transform 0.25s ease;
+}
+
+/* 블록이 서면 카메라를 살짝 낮춰 키가 더 잘 보이게 */
+.bx-scene--stand {
+  transform: rotateX(54deg) rotateZ(-45deg);
+}
+
+.bx-view--fall {
   animation: bx-shake 0.4s ease;
 }
 
 @keyframes bx-shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  75% { transform: translateX(6px); }
+  25% { transform: translateX(-7px); }
+  75% { transform: translateX(7px); }
 }
 
-.bx-cell {
-  aspect-ratio: 1;
-  border-radius: 6px;
-  transition: background 0.12s ease;
+.bx-face {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
 }
 
-.bx-cell--void {
-  background: transparent;
+/* 바닥 윗면 */
+.bx-face--floor {
+  background: #3b4a7d;
+  box-shadow: inset 0 0 0 1px #4b5c96;
 }
 
-.bx-cell--floor {
-  background: #2f3a63;
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+/* 목표 구멍 */
+.bx-face--goal {
+  background: #2a2410;
+  box-shadow: inset 0 0 0 4px var(--hn-accent), inset 0 0 22px rgba(255, 209, 102, 0.55);
 }
 
-.bx-cell--goal {
-  background: #4a3f18;
-  box-shadow: inset 0 0 0 3px var(--hn-accent);
+/* 바닥 두께 — 앞쪽·옆쪽 두 면만 그린다 (나머지는 안 보인다) */
+.bx-face--slab {
+  background: #26315c;
 }
 
-.bx-cell--block {
-  background: #7fd4ff;
-  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.3);
+.bx-face--slab2 {
+  background: #1c2447;
 }
 
-/* 서 있는 블록은 한 칸을 꽉 채우고 더 밝게 — 누운 것과 한눈에 구분되어야 한다 */
-.bx-cell--stand {
-  background: #ffd166;
-  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.35), inset 0 -5px 0 rgba(0, 0, 0, 0.3);
+/* 블록이 바닥에 드리우는 그림자 — 어느 칸 위인지 바로 읽힌다 */
+.bx-face--shadow {
+  background: rgba(0, 0, 0, 0.38);
+  filter: blur(1px);
+}
+
+/* 블록 — 윗면이 가장 밝고 옆으로 갈수록 어둡다. 이 명암이 입체를 만든다 */
+.bx-face--btop {
+  background: linear-gradient(140deg, #b8ecff, #7fd4ff);
+  box-shadow: inset 0 0 0 1px #d8f5ff;
+}
+
+.bx-face--bfront {
+  background: linear-gradient(180deg, #57aede, #3d8fbd);
+}
+
+.bx-face--bside {
+  background: linear-gradient(90deg, #2f7ba8, #276b93);
 }
 
 .bx-hint {

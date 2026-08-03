@@ -11,11 +11,13 @@
  *   y     — (r,c)와 (r+1,c)에 세로로 누움
  */
 import type { GradeId } from '../data/types'
-import { wordsUpTo } from '../data/words'
+import { wordsUpTo, hunEumOf } from '../data/words'
 import * as cards from '../cards'
 import * as progress from '../progress'
 import * as srs from '../srs'
-import { el, resultCard, toast, topBar, type Screen } from '../ui'
+import * as tts from '../tts'
+import { wordbookScreen } from '../wordbook'
+import { el, prizeModal, resultCard, toast, topBar, type Screen } from '../ui'
 
 const GAME_ID = 'bloxorz'
 
@@ -170,32 +172,74 @@ export const bloxorzGame =
     let falls = 0
     let done = false
 
-    const board = el('div', { class: 'bx-board' })
+    // ── 3D 렌더링 ──────────────────────────────────────────
+    // 2D 격자로는 블록이 **서 있는지 누웠는지**를 알 수 없다 — 그게 이 퍼즐의 전부인데.
+    // 그래서 CSS 3D로 실제 입체를 세운다. 바닥은 두께가 있는 판, 블록은 면 3개(윗면·앞면·옆면)로
+    // 만든 상자다. 카메라 각도에서 보이는 면만 그린다 (뒷면은 어차피 안 보인다).
+    const view = el('div', { class: 'bx-view' })
+    const scene = el('div', { class: 'bx-scene' })
+    view.append(scene)
     const status = el('span', { class: 'bx-status' })
     const hint = el('p', { class: 'bx-hint', text: '블록을 굴려 노란 구멍에 세워서 빠뜨려요' })
 
+    /** 장면 기울기 — 이 값이 바뀌면 아래 높이 계산의 계수도 같이 바뀐다 */
+    const TILT = 58 // rotateX(도)
+    const SLAB = 0.16 // 바닥 판 두께 (칸 크기 대비)
+
+    function face(cls: string, w: number, h: number, transform: string): HTMLElement {
+      const d = el('div', { class: `bx-face ${cls}` })
+      d.style.width = `${w}px`
+      d.style.height = `${h}px`
+      d.style.transform = transform
+      return d
+    }
+
     function draw() {
-      board.style.gridTemplateColumns = `repeat(${lv.cols}, 1fr)`
-      board.style.setProperty('--bx-cols', String(lv.cols))
-      const occupied = new Set(cells(block).map(([r, c]) => `${r},${c}`))
-      const kids: HTMLElement[] = []
+      // 칸 크기: rotateZ(-45°) 때문에 가로 폭은 (열+행)에 비례한다
+      const avail = view.clientWidth || 360
+      const S = Math.max(26, Math.min(64, Math.floor(avail / (0.78 * (lv.cols + lv.rows)))))
+      const T = Math.round(S * SLAB)
+      const W = lv.cols * S
+      const H = lv.rows * S
+
+      scene.style.width = `${W}px`
+      scene.style.height = `${H}px`
+      // 기울여 놓은 바닥의 세로 투영 + 서 있는 블록(2칸) 높이만큼 자리를 잡아 준다
+      const tiltRad = (TILT * Math.PI) / 180
+      view.style.height = `${Math.round(((W + H) / Math.SQRT2) * Math.cos(tiltRad) + 2 * S + 28)}px`
+
+      const parts: HTMLElement[] = []
+
+      // 바닥 — 윗면 + 카메라 쪽 두 옆면(두께)
       for (let r = 0; r < lv.rows; r++) {
         for (let c = 0; c < lv.cols; c++) {
           const t = lv.grid[r][c]
-          const on = occupied.has(`${r},${c}`)
-          const cls = [
-            'bx-cell',
-            t === 0 ? 'bx-cell--void' : t === 2 ? 'bx-cell--goal' : 'bx-cell--floor',
-            on ? 'bx-cell--block' : '',
-            on && block.o === 'stand' ? 'bx-cell--stand' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')
-          kids.push(el('div', { class: cls }))
+          if (t === 0) continue
+          const x = c * S
+          const y = r * S
+          const top = t === 2 ? 'bx-face--goal' : 'bx-face--floor'
+          parts.push(face(top, S, S, `translate3d(${x}px, ${y}px, 0px)`))
+          parts.push(face('bx-face--slab', S, T, `translate3d(${x}px, ${y + S}px, 0px) rotateX(-90deg)`))
+          parts.push(face('bx-face--slab2', T, S, `translate3d(${x + S}px, ${y}px, 0px) rotateY(90deg)`))
         }
       }
-      board.replaceChildren(...kids)
-      status.textContent = `${levelNo + 1}단계 · ${moves}번 굴림`
+
+      // 블록 — 자세에 따라 상자의 가로·세로·높이가 바뀐다
+      const w = block.o === 'x' ? 2 * S : S
+      const d = block.o === 'y' ? 2 * S : S
+      const h = block.o === 'stand' ? 2 * S : S
+      const bx = block.c * S
+      const by = block.r * S
+
+      // 바닥에 드리운 그림자 — 블록이 어느 칸 위에 있는지 바로 읽힌다
+      parts.push(face('bx-face--shadow', w, d, `translate3d(${bx}px, ${by}px, 1px)`))
+      parts.push(face('bx-face--btop', w, d, `translate3d(${bx}px, ${by}px, ${h}px)`))
+      parts.push(face('bx-face--bfront', w, h, `translate3d(${bx}px, ${by + d}px, ${h}px) rotateX(-90deg)`))
+      parts.push(face('bx-face--bside', h, d, `translate3d(${bx + w}px, ${by}px, ${h}px) rotateY(90deg)`))
+
+      scene.replaceChildren(...parts)
+      scene.classList.toggle('bx-scene--stand', block.o === 'stand')
+      status.textContent = `${levelNo + 1}단계 · ${moves}번 굴림 · ${block.o === 'stand' ? '서 있음' : '누움'}`
     }
 
     function nextLevel() {
@@ -217,25 +261,37 @@ export const bloxorzGame =
       progress.recordBest(GAME_ID, Math.max(0, 100 - moves * 2 - falls * 10))
 
       const makeable = cards.completableWords(grade)
-      root.replaceChildren(
-        topBar('블록 굴리기', () => nav(home)),
-        resultCard({
-          emoji: '🎉',
-          title: `한자 카드 획득!`,
-          lines: [
-            `${levelNo + 1}단계를 ${moves}번 만에 깼어요`,
-            falls ? `${falls}번 떨어졌어요` : '한 번도 안 떨어졌어요!',
-            makeable.length ? `단어장에서 ${makeable.length}개 낱말을 만들 수 있어요` : '',
-          ].filter(Boolean),
-          actions: [
-            { label: '다음 단계', primary: true, onClick: () => nav(bloxorzGame(grade, home)) },
-            { label: '정원으로', onClick: () => nav(home) },
-          ],
+
+      function showResult() {
+        root.replaceChildren(
+          topBar('블록 굴리기', () => nav(home)),
+          resultCard({
+            emoji: '🎉',
+            title: `${levelNo + 1}단계 통과!`,
+            lines: [
+              `${moves}번 만에 깼어요`,
+              falls ? `${falls}번 떨어졌어요` : '한 번도 안 떨어졌어요!',
+              `${char} 카드를 받았어요 (모두 ${cards.count(char)}장)`,
+              makeable.length ? `단어장에서 ${makeable.length}개 낱말을 만들 수 있어요` : '',
+            ].filter(Boolean),
+            actions: [
+              { label: '다음 단계', primary: true, onClick: () => nav(bloxorzGame(grade, home)) },
+              { label: '단어장 보기', onClick: () => nav(wordbookScreen(grade, home)) },
+              { label: '정원으로', onClick: () => nav(home) },
+            ],
+          }),
+        )
+      }
+
+      // 결과 화면에 슬쩍 끼워 넣으면 카드를 받은 줄 모른다 — 짜잔 하고 덮어서 보여 준다
+      tts.speak(hunEumOf(char))
+      root.append(
+        prizeModal({
+          char,
+          title: `${hunEumOf(char)} 카드`,
+          lines: [`${char} 카드를 받았어요`, `모두 ${cards.count(char)}장`],
+          onConfirm: showResult,
         }),
-        el('div', { class: 'bx-prize' }, [
-          el('span', { class: 'bx-prize__card', text: char }),
-          el('span', { class: 'bx-prize__label', text: `${char} 카드를 받았어요 (모두 ${cards.count(char)}장)` }),
-        ]),
       )
     }
 
@@ -248,8 +304,8 @@ export const bloxorzGame =
         block = { ...lv.start }
         moves = 0
         toast(root, '앗, 떨어졌어요!', 'bad')
-        board.classList.add('bx-board--fall')
-        setTimeout(() => board.classList.remove('bx-board--fall'), 400)
+        view.classList.add('bx-view--fall')
+        setTimeout(() => view.classList.remove('bx-view--fall'), 400)
         draw()
         return
       }
@@ -279,12 +335,15 @@ export const bloxorzGame =
       move(d)
     }
     window.addEventListener('keydown', onKey)
+    // 화면을 돌리거나 창을 줄이면 칸 크기를 다시 잡아야 판이 안 잘린다
+    const onResize = () => draw()
+    window.addEventListener('resize', onResize)
 
     root.append(
       topBar('블록 굴리기', () => nav(home)),
       el('div', { class: 'bx-wrap' }, [
         status,
-        board,
+        view,
         hint,
         pad,
         el('button', {
@@ -297,5 +356,8 @@ export const bloxorzGame =
     )
     draw()
 
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', onResize)
+    }
   }

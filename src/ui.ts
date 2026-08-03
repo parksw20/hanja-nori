@@ -70,6 +70,47 @@ export function resultCard(opts: {
   ])
 }
 
+/**
+ * 상품(한자 카드)을 짜잔 하고 보여 주는 모달.
+ *
+ * 결과 화면에 슬쩍 끼워 넣으면 아이가 "카드를 받았다"는 걸 못 알아챈다.
+ * 화면을 덮고 → 크게 나타났다가 → 카드 크기로 줄어들고 → 확인을 눌러야 넘어가게 한다.
+ */
+export function prizeModal(opts: {
+  char: string
+  title: string
+  lines: string[]
+  onConfirm: () => void
+}): HTMLElement {
+  const card = el('div', { class: 'hn-modal__card' }, [el('span', { class: 'hn-modal__char', text: opts.char })])
+
+  const box = el('div', { class: 'hn-modal__box' }, [
+    el('div', { class: 'hn-modal__tada', text: '짜잔!' }),
+    card,
+    el('h2', { class: 'hn-modal__title', text: opts.title }),
+    ...opts.lines.map((t) => el('p', { class: 'hn-modal__line', text: t })),
+    el('button', { class: 'hn-btn hn-btn--primary hn-modal__ok', type: 'button', text: '확인' }),
+  ])
+
+  const overlay = el('div', { class: 'hn-modal' }, [box])
+
+  function close() {
+    overlay.classList.add('hn-modal--out')
+    setTimeout(() => {
+      overlay.remove()
+      opts.onConfirm()
+    }, 180)
+  }
+
+  box.querySelector<HTMLButtonElement>('.hn-modal__ok')!.addEventListener('click', close)
+  // 바깥을 눌러도 닫히게 하되, 카드 위를 잘못 눌러 닫히지는 않게
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close()
+  })
+
+  return overlay
+}
+
 /** 짧은 칭찬/오답 알림 */
 export function toast(root: HTMLElement, text: string, kind: 'good' | 'bad' = 'good'): void {
   const t = el('div', { class: `hn-toast hn-toast--${kind}`, text })
