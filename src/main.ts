@@ -6,6 +6,7 @@ import * as progress from './progress'
 import * as tts from './tts'
 import * as cards from './cards'
 import * as sfx from './sfx'
+import * as backup from './backup'
 import { EXAMS, examScreen } from './exam'
 import { wordbookScreen } from './wordbook'
 import { hunmumGame } from './games/hunmum'
@@ -157,18 +158,43 @@ const home: Screen = (root, nav) => {
         soundToggle(),
         voicePicker(),
         el('footer', { class: 'gd-foot' }, [
+          // 기록은 이 브라우저에만 있다 — 기기를 바꾸거나 브라우저 데이터를 지우면 사라진다.
+          // 파일로 빼 둘 수 있게 해 둔다.
+          el('div', { class: 'gd-backup' }, [
+            el('button', {
+              class: 'gd-backup__btn',
+              type: 'button',
+              text: '💾 기록 백업',
+              onclick: () => backup.download(),
+            }),
+            el('button', {
+              class: 'gd-backup__btn',
+              type: 'button',
+              text: '📂 기록 불러오기',
+              onclick: () =>
+                backup.pickAndRestore(
+                  (n) => {
+                    alert(`기록 ${n}개를 되돌렸어요.`)
+                    viewing = null
+                    nav(home)
+                  },
+                  (msg) => alert(msg),
+                ),
+            }),
+          ]),
           el('button', {
             class: 'gd-reset',
             type: 'button',
             text: '기록 처음부터',
             onclick: () => {
-              if (confirm('배운 기록·급수증·한자 카드가 모두 지워집니다. 계속할까요?')) {
-                srs.resetAll()
-                progress.resetAll()
-                cards.resetAll()
-                viewing = null
-                nav(home)
-              }
+              // 아이가 잘못 눌러 통째로 날리는 일이 없게 두 번 묻는다
+              if (!confirm('배운 기록·급수증·한자 카드가 모두 지워집니다. 계속할까요?')) return
+              if (!confirm('정말 지울까요? 되돌릴 수 없어요. (먼저 「기록 백업」을 받아 두면 안전해요)')) return
+              srs.resetAll()
+              progress.resetAll()
+              cards.resetAll()
+              viewing = null
+              nav(home)
             },
           }),
         ]),

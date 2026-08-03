@@ -653,6 +653,26 @@ body {
 .gd-foot {
   margin-top: 24px;
   text-align: center;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.gd-backup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.gd-backup__btn {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+  color: var(--hn-ink-dim);
+  font-size: 0.85rem;
+  cursor: pointer;
 }
 
 .gd-reset {
