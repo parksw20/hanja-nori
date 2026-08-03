@@ -60,7 +60,8 @@ function tone(freq: number, dur: number, opts: { delay?: number; gain?: number; 
   osc.type = opts.type ?? 'sine'
   osc.frequency.setValueAtTime(freq, t0)
   // 뚝 끊기면 "틱" 하는 잡음이 난다 — 짧게 올렸다 부드럽게 내린다
-  const peak = opts.gain ?? 0.07
+  // (0.07로 시작했는데 굽어 들어 보니 너무 작았다 — 태블릿 스피커에서도 들리게 올렸다)
+  const peak = opts.gain ?? 0.13
   g.gain.setValueAtTime(0.0001, t0)
   g.gain.exponentialRampToValueAtTime(peak, t0 + 0.012)
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
@@ -76,7 +77,7 @@ export function tap(): void {
 
 /** 이전·다음처럼 이동할 때 (조금 낮게) */
 export function move(): void {
-  tone(480, 0.07, { gain: 0.05 })
+  tone(480, 0.07, { gain: 0.09 })
 }
 
 /** 제출처럼 확정하는 순간 */
@@ -114,7 +115,7 @@ export function applause(delay = 0): void {
     bp.frequency.value = 1100 + Math.random() * 1900
     bp.Q.value = 0.7
     const g = ac.createGain()
-    const peak = 0.035 + Math.random() * 0.04
+    const peak = 0.07 + Math.random() * 0.08
     g.gain.setValueAtTime(0.0001, t)
     g.gain.exponentialRampToValueAtTime(peak, t + 0.004)
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05 + Math.random() * 0.06)
@@ -134,6 +135,6 @@ export function fanfare(): void {
 
 /** 불합격 — 야단치는 소리가 되지 않게 낮고 짧게 */
 export function soft(): void {
-  tone(392, 0.16, { gain: 0.05 })
+  tone(392, 0.16, { gain: 0.09 })
   tone(294, 0.22, { delay: 0.14, gain: 0.05 })
 }
