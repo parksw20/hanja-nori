@@ -21,6 +21,14 @@ export interface CardState {
   /** 누적 정답/오답 */
   right: number
   wrong: number
+  /**
+   * 여태 도달한 가장 긴 복습 간격.
+   *
+   * 정원의 성장 단계는 **이 값**으로 정한다. interval로 정하면 한 번 틀렸을 때
+   * 꽃이 새싹으로 되돌아간다 — 아이 입장에서는 키운 것을 빼앗기는 일이라 납득이 안 된다.
+   * 자란 것은 그대로 두고, 복습이 밀린 것은 "시듦"으로 따로 알린다.
+   */
+  peak?: number
 }
 
 export type Answer = 'wrong' | 'right' | 'easy'
@@ -50,7 +58,7 @@ function save(s: Store): void {
 let store: Store = load()
 
 function fresh(): CardState {
-  return { reps: 0, ease: 2.5, interval: 0, due: 0, right: 0, wrong: 0 }
+  return { reps: 0, ease: 2.5, interval: 0, due: 0, right: 0, wrong: 0, peak: 0 }
 }
 
 export function stateOf(char: string): CardState {
@@ -68,6 +76,9 @@ export function isNew(char: string): boolean {
  */
 export function review(char: string, answer: Answer, now = Date.now()): CardState {
   const c = { ...stateOf(char) }
+  // 지금까지 자란 정도는 **간격을 건드리기 전에** 챙겨 둔다.
+  // (peak가 없는 예전 기록은 현재 간격이 곧 자란 정도다 — 나중에 읽으면 0으로 덮인다)
+  const grown = Math.max(c.peak ?? 0, c.interval)
 
   if (answer === 'wrong') {
     c.reps = 0
@@ -83,6 +94,8 @@ export function review(char: string, answer: Answer, now = Date.now()): CardStat
     else c.interval = Math.min(60, Math.round(c.interval * c.ease))
   }
 
+  // 자란 만큼은 남긴다 — 틀렸다고 꽃이 새싹으로 되돌아가지는 않는다
+  c.peak = Math.max(grown, c.interval)
   c.due = now + c.interval * DAY
   store[char] = c
   save(store)
@@ -102,14 +115,20 @@ export function newChars(all: string[]): string[] {
   return all.filter((c) => !store[c])
 }
 
-/** 정원 성장 단계 */
+/**
+ * 정원 성장 단계 — **한 번 자라면 되돌아가지 않는다.**
+ * 지금 간격(interval)이 아니라 여태 도달한 최대 간격(peak)으로 정한다.
+ * 틀려서 복습이 앞당겨진 것은 성장 후퇴가 아니라 "시듦"으로 표시한다(isWilted).
+ */
 export function growthOf(char: string): Growth {
   const s = store[char]
   if (!s) return 'seed'
-  if (s.reps === 0) return 'sprout'
-  if (s.interval < 3) return 'sprout'
-  if (s.interval < 10) return 'sapling'
-  if (s.interval < 30) return 'tree'
+  // peak가 없는 예전 기록은 지금 간격으로 대신한다
+  const grown = Math.max(s.peak ?? 0, s.interval)
+  if (grown < 1) return 'sprout'
+  if (grown < 3) return 'sprout'
+  if (grown < 10) return 'sapling'
+  if (grown < 30) return 'tree'
   return 'bloom'
 }
 

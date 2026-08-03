@@ -17,6 +17,7 @@ import { ANTONYMS, SYNONYMS, IDIOMS, upTo } from './data/pairs'
 import { NO_PILSUN } from './data/grades'
 import * as srs from './srs'
 import * as progress from './progress'
+import * as sfx from './sfx'
 import { renderCharSvg, strokeCount } from './hanjaSvg'
 import { el, progressBar, resultCard, topBar, type Screen } from './ui'
 
@@ -325,6 +326,8 @@ export const examScreen =
       const seconds = Math.round((Date.now() - startedAt) / 1000)
       const passed = score >= spec.pass
       progress.recordExam({ score, total: spec.total, passed, seconds, at: Date.now() }, spec.id)
+      // 제출음이 끝난 뒤에 결과음
+      setTimeout(() => (passed ? sfx.fanfare() : sfx.soft()), 260)
 
       const next = LADDER[LADDER.indexOf(grade) + 1]
       const notes = el(
@@ -396,6 +399,8 @@ export const examScreen =
               type: 'button',
               text: c,
               onclick: () => {
+                // 정답 여부는 제출할 때까지 안 알려 준다 — 누른 느낌만 준다
+                sfx.tap()
                 picked[idx] = c
                 if (idx < questions.length - 1) idx++
                 render()
@@ -411,6 +416,7 @@ export const examScreen =
             disabled: idx === 0,
             onclick: () => {
               if (idx > 0) {
+                sfx.move()
                 idx--
                 render()
               }
@@ -423,6 +429,7 @@ export const examScreen =
             disabled: idx === questions.length - 1,
             onclick: () => {
               if (idx < questions.length - 1) {
+                sfx.move()
                 idx++
                 render()
               }
@@ -432,7 +439,10 @@ export const examScreen =
             class: 'hn-btn hn-btn--primary',
             type: 'button',
             text: `제출 (${picked.filter(Boolean).length}/${questions.length})`,
-            onclick: submit,
+            onclick: () => {
+              sfx.submit()
+              submit()
+            },
           }),
         ]),
       )

@@ -613,6 +613,17 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.gd-sound {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+  color: var(--hn-ink-dim);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: left;
+}
+
 .gd-voice {
   display: flex;
   align-items: center;

@@ -5,6 +5,7 @@ import * as srs from './srs'
 import * as progress from './progress'
 import * as tts from './tts'
 import * as cards from './cards'
+import * as sfx from './sfx'
 import { EXAMS, examScreen } from './exam'
 import { wordbookScreen } from './wordbook'
 import { hunmumGame } from './games/hunmum'
@@ -153,6 +154,7 @@ const home: Screen = (root, nav) => {
         menu,
         // 단어장은 메뉴 패널 맨 아래 — 놀이가 아니라 "모은 것을 보는 곳"이라 따로 둔다
         wordbookButton(grade, nav),
+        soundToggle(),
         voicePicker(),
         el('footer', { class: 'gd-foot' }, [
           el('button', {
@@ -195,6 +197,20 @@ const home: Screen = (root, nav) => {
       ]),
     ]),
   )
+}
+
+/** 효과음 켜기/끄기 — 조용해야 할 때가 있다 */
+function soundToggle(): HTMLElement {
+  const btn = el('button', {
+    class: 'gd-sound',
+    type: 'button',
+    text: sfx.isOn() ? '🔔 효과음 켜짐' : '🔕 효과음 꺼짐',
+  })
+  btn.addEventListener('click', () => {
+    const on = sfx.toggle()
+    btn.textContent = on ? '🔔 효과음 켜짐' : '🔕 효과음 꺼짐'
+  })
+  return btn
 }
 
 /** 단어장 — 모은 카드로 낱말을 만드는 곳 */
