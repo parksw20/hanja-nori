@@ -357,6 +357,27 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255, 93, 115, 0.4);
 }
 
+/* 가진 카드 — 글자 왼쪽 아래 (성장 아이콘은 오른쪽 아래) */
+.gd-tile__card {
+  position: absolute;
+  left: 2px;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  line-height: 1;
+  color: var(--hn-accent);
+}
+
+.gd-tile__cardicon {
+  font-size: 1.1rem;
+}
+
+.gd-tile__cardn {
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
 .gd-tile__peek {
   position: absolute;
   left: 50%;
@@ -441,6 +462,11 @@ body {
 .gd-item--exam {
   border-color: var(--hn-accent);
   background: linear-gradient(135deg, #2e2a1c, var(--hn-card));
+}
+
+.gd-item--book {
+  border-color: #4f7cc4;
+  background: linear-gradient(135deg, #1e2b45, var(--hn-card));
 }
 
 .gd-item__emoji {
@@ -701,6 +727,318 @@ body {
   margin: 0;
   color: var(--hn-ink-dim);
   font-size: 1rem;
+}
+
+/* ── 블록 굴리기 ──────────────────────────────────────── */
+
+.bx-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.bx-status {
+  font-weight: 700;
+  color: var(--hn-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.bx-board {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: var(--hn-radius);
+  border: 1px solid var(--hn-line);
+  background: var(--hn-bg-2);
+  /* 칸이 몇 개든 판 전체가 화면에 들어오게 */
+  width: min(92vw, 420px);
+}
+
+.bx-board--fall {
+  animation: bx-shake 0.4s ease;
+}
+
+@keyframes bx-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.bx-cell {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  transition: background 0.12s ease;
+}
+
+.bx-cell--void {
+  background: transparent;
+}
+
+.bx-cell--floor {
+  background: #2f3a63;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+}
+
+.bx-cell--goal {
+  background: #4a3f18;
+  box-shadow: inset 0 0 0 3px var(--hn-accent);
+}
+
+.bx-cell--block {
+  background: #7fd4ff;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* 서 있는 블록은 한 칸을 꽉 채우고 더 밝게 — 누운 것과 한눈에 구분되어야 한다 */
+.bx-cell--stand {
+  background: #ffd166;
+  box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.35), inset 0 -5px 0 rgba(0, 0, 0, 0.3);
+}
+
+.bx-hint {
+  margin: 0;
+  color: var(--hn-ink-dim);
+  font-size: 1rem;
+  text-align: center;
+}
+
+.bx-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 64px);
+  grid-template-rows: repeat(2, 64px);
+  gap: 8px;
+  justify-content: center;
+}
+
+.bx-key {
+  border-radius: 14px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+  color: var(--hn-ink);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.bx-key--up { grid-area: 1 / 2; }
+.bx-key--left { grid-area: 2 / 1; }
+.bx-key--down { grid-area: 2 / 2; }
+.bx-key--right { grid-area: 2 / 3; }
+
+.bx-skip {
+  font-size: 0.95rem;
+  padding: 8px 16px;
+}
+
+.bx-prize {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.bx-prize__card {
+  display: grid;
+  place-items: center;
+  width: 110px;
+  height: 150px;
+  border-radius: 14px;
+  border: 2px solid var(--hn-accent);
+  background: linear-gradient(160deg, #3a3520, var(--hn-card));
+  font-size: 4rem;
+  color: var(--hn-accent);
+}
+
+.bx-prize__label {
+  color: var(--hn-ink-dim);
+}
+
+/* ── 단어장 ───────────────────────────────────────────── */
+
+.wb-wrap {
+  display: grid;
+  gap: 18px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.wb-sec {
+  padding: 14px 16px;
+  border-radius: var(--hn-radius);
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+}
+
+.wb-sec__title {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+}
+
+.wb-empty {
+  margin: 0;
+  color: var(--hn-ink-dim);
+}
+
+.wb-cards {
+  display: grid;
+  gap: 8px;
+}
+
+.wb-make {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--hn-good);
+  background: #1e3d34;
+  color: var(--hn-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.wb-make__word {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.wb-make__reading {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--hn-good);
+}
+
+.wb-make__meaning {
+  font-size: 0.9rem;
+  color: var(--hn-ink-dim);
+  word-break: keep-all;
+}
+
+.wb-make__go {
+  font-weight: 700;
+  color: #04231b;
+  background: var(--hn-good);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}
+
+.wb-near {
+  display: grid;
+  gap: 6px;
+}
+
+.wb-near__row {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 10px;
+  align-items: baseline;
+  color: var(--hn-ink-dim);
+}
+
+.wb-near__word {
+  font-size: 1.3rem;
+  color: var(--hn-ink);
+}
+
+.wb-near__need {
+  font-size: 0.9rem;
+  color: var(--hn-bad);
+}
+
+.wb-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wb-card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 84px;
+  border-radius: 10px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-bg-2);
+  color: var(--hn-ink);
+  cursor: pointer;
+  padding: 0;
+}
+
+.wb-card--picked {
+  border-color: var(--hn-accent);
+  background: #3a3520;
+}
+
+.wb-card__char {
+  font-size: 1.9rem;
+}
+
+.wb-card__n {
+  font-size: 0.75rem;
+  color: var(--hn-ink-dim);
+}
+
+.wb-card__pick {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.65rem;
+  color: var(--hn-accent);
+}
+
+.wb-swap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.wb-swap__help {
+  margin: 0 0 10px;
+  color: var(--hn-ink-dim);
+  font-size: 0.9rem;
+}
+
+.wb-swap__picked {
+  font-size: 1.2rem;
+  min-width: 6em;
+}
+
+.wb-swap__select {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-bg-2);
+  color: var(--hn-ink);
+  font-size: 1rem;
+}
+
+.wb-made {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wb-made__chip {
+  display: grid;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-bg-2);
+  color: var(--hn-ink);
+  cursor: pointer;
+}
+
+.wb-made__word {
+  font-size: 1.3rem;
+}
+
+.wb-made__reading {
+  font-size: 0.8rem;
+  color: var(--hn-ink-dim);
 }
 
 /* ── 모의고사 ─────────────────────────────────────────── */

@@ -8,6 +8,8 @@ import { HANJA_8, WORDS_8 } from '../src/data/hanja8'
 import { HANJA_7II, HANJA_7, HANJA_6II, HANJA_6, STROKE_VARIANT, NO_PILSUN } from '../src/data/grades'
 import { ALL_HANJA, ALL_WORDS } from '../src/data/words'
 import { EXAMS, buildQuestions } from '../src/exam'
+import { LEVELS, parseLevel, solve, rewardChar } from '../src/games/bloxorz'
+import * as cards from '../src/cards'
 import strokes from '../src/data/strokes.json'
 
 let failed = 0
@@ -174,6 +176,80 @@ for (const o of OFFICIAL) {
   const pilsunBad = qs.filter((q) => q.kind === '필순' && q.chars.some((c) => NO_PILSUN.has(c)))
   check(`${spec.name} 필순 문제에 대체 자형 글자가 안 나옴`, pilsunBad.length === 0, pilsunBad.map((q) => q.stem).join(' '))
 }
+
+// ── 5. 블록 굴리기 레벨 ──────────────────────────────────────────
+// 손으로 그린 판은 풀 수 없는 것이 섞인다 (실제로 처음 5단계가 그랬다). BFS로 전수 검사.
+const solved: number[] = []
+LEVELS.forEach((map, i) => {
+  const no = i + 1
+  let lv: ReturnType<typeof parseLevel> | null = null
+  try {
+    lv = parseLevel(map)
+  } catch (e) {
+    check(`${no}단계 파싱`, false, (e as Error).message)
+  }
+  if (!lv) return
+
+  const goals = lv.grid.flat().filter((t) => t === 2).length
+  check(`${no}단계에 목표 구멍이 하나`, goals === 1, `${goals}개`)
+
+  const n = solve(lv)
+  check(`${no}단계는 풀 수 있음`, n !== null, '어떻게 굴려도 목표에 못 선다')
+  if (n !== null) solved.push(n)
+
+  // 시작 지점이 곧 목표면 게임이 안 된다
+  check(`${no}단계 시작이 목표가 아님`, lv.grid[lv.start.r][lv.start.c] !== 2)
+})
+
+const rising = solved.every((n, i) => i === 0 || n >= solved[i - 1])
+check(
+  '레벨이 뒤로 갈수록 어려워짐 (최소 굴림 수가 안 줄어듦)',
+  rising,
+  `최소 수: ${solved.join(' → ')}`,
+)
+
+// ── 6. 한자 카드 ────────────────────────────────────────────────
+// localStorage가 없는 node 환경이라 cards.ts가 조용히 메모리로 동작하는지까지 확인한다
+cards.resetAll()
+check('처음엔 카드가 없음', cards.total() === 0)
+
+cards.add('國', 2)
+cards.add('外', 1)
+cards.add('民', 1)
+check('카드가 쌓임 (國2 外1 民1 = 4장)', cards.total() === 4, `${cards.total()}장`)
+
+check('外國을 만들 수 있음', cards.canComplete('外國'))
+check('國民을 만들 수 있음', cards.canComplete('國民'))
+check('大韓民國은 못 만듦 (大·韓이 없다)', !cards.canComplete('大韓民國'))
+
+check('外國 만들기 성공', cards.completeWord('外國'))
+check('外國을 만들면 國이 1장 남음', cards.count('國') === 1, `${cards.count('國')}장`)
+check('外는 다 씀', cards.count('外') === 0, `${cards.count('外')}장`)
+check('國民은 아직 만들 수 있음 (國1 民1)', cards.canComplete('國民'))
+check('國民 만들기 성공', cards.completeWord('國民'))
+check('카드를 다 씀', cards.total() === 0, `${cards.total()}장`)
+check('만든 낱말 2개', cards.completedWords().length === 2, cards.completedWords().join(' '))
+check('같은 낱말은 두 번 못 만듦', !cards.canComplete('外國'))
+
+// 교환: 5장 → 1장
+cards.resetAll()
+cards.add('土', 5)
+check('4장으로는 교환 안 됨', !cards.exchange(['土', '土', '土', '土'], '學'))
+check('5장으로 교환 성공', cards.exchange(['土', '土', '土', '土', '土'], '學'))
+check('교환하면 낸 카드가 사라짐', cards.count('土') === 0, `${cards.count('土')}장`)
+check('교환하면 원하는 카드를 받음', cards.count('學') === 1, `${cards.count('學')}장`)
+
+cards.resetAll()
+cards.add('日', 3)
+cards.add('月', 2)
+check('서로 다른 카드 5장으로도 교환됨', cards.exchange(['日', '日', '日', '月', '月'], '火'))
+check('교환 뒤 火 1장만 남음', cards.total() === 1 && cards.count('火') === 1)
+
+// 상으로 주는 한자는 반드시 배정한자 안에 있어야 한다
+const rewardOk = Array.from({ length: 200 }, () => rewardChar('6')).every((c) => seen.has(c))
+check('블록 퍼즐 보상 한자가 전부 배정한자 안에 있음', rewardOk)
+
+cards.resetAll()
 
 // ── 결과 ───────────────────────────────────────────────────────
 if (failed > 0) {

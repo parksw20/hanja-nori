@@ -4,10 +4,13 @@ import { LADDER, cumulative, hunEumOf } from './data/words'
 import * as srs from './srs'
 import * as progress from './progress'
 import * as tts from './tts'
+import * as cards from './cards'
 import { EXAMS, examScreen } from './exam'
+import { wordbookScreen } from './wordbook'
 import { hunmumGame } from './games/hunmum'
 import { dokeumGame } from './games/dokeum'
 import { pilsunGame } from './games/pilsun'
+import { bloxorzGame } from './games/bloxorz'
 import { createNav, el, type Screen } from './ui'
 
 const GROWTH_ICON: Record<ReturnType<typeof srs.growthOf>, string> = {
@@ -80,16 +83,26 @@ const home: Screen = (root, nav) => {
     chars.map((c) => {
       const growth = srs.growthOf(c)
       const wilted = srs.isWilted(c)
+      const nCards = cards.count(c)
       const tile = el(
         'button',
         {
           class: `gd-tile gd-tile--${growth} ${wilted ? 'gd-tile--wilted' : ''}`,
           type: 'button',
-          title: `${c} ${hunEumOf(c)}`,
+          title: nCards ? `${c} ${hunEumOf(c)} · 카드 ${nCards}장` : `${c} ${hunEumOf(c)}`,
         },
         [
           el('span', { class: 'gd-tile__char', text: c }),
           el('span', { class: 'gd-tile__growth', text: GROWTH_ICON[growth] }),
+          // 가진 카드는 글자 왼쪽 아래에 (성장 아이콘은 오른쪽 아래)
+          ...(nCards
+            ? [
+                el('span', { class: 'gd-tile__card', title: `${c} 카드 ${nCards}장` }, [
+                  el('span', { class: 'gd-tile__cardicon', text: '🂠' }),
+                  el('span', { class: 'gd-tile__cardn', text: String(nCards) }),
+                ]),
+              ]
+            : []),
         ],
       )
       // 누르면 훈음을 보여 주고 **소리로 읽어 준다** (아직 글씨를 못 읽는 아이를 위해)
@@ -112,6 +125,7 @@ const home: Screen = (root, nav) => {
     menuButton('🃏', '훈음 짝맞추기', '뜻과 소리를 짝지어요', 'hunmum', () => nav(hunmumGame(grade, home))),
     menuButton('☄️', '독음 요격', '낱말을 소리내어 읽어요', 'dokeum', () => nav(dokeumGame(grade, home))),
     menuButton('🖌️', '필순 따라쓰기', '획을 순서대로 그어요', 'pilsun', () => nav(pilsunGame(grade, home))),
+    menuButton('🧊', '블록 굴리기', '깨면 한자 카드를 줘요', 'bloxorz', () => nav(bloxorzGame(grade, home))),
     el('button', { class: 'gd-item gd-item--exam', type: 'button', onclick: () => nav(examScreen(grade, home)) }, [
       el('span', { class: 'gd-item__emoji', text: progress.hasCertificate(grade) ? '🎖️' : '📝' }),
       el('span', { class: 'gd-item__body' }, [
@@ -137,6 +151,8 @@ const home: Screen = (root, nav) => {
           el('span', { class: 'gd-head__grade', text: `${spec.name} · ${spec.chars}자` }),
         ]),
         menu,
+        // 단어장은 메뉴 패널 맨 아래 — 놀이가 아니라 "모은 것을 보는 곳"이라 따로 둔다
+        wordbookButton(grade, nav),
         voicePicker(),
         el('footer', { class: 'gd-foot' }, [
           el('button', {
@@ -144,9 +160,10 @@ const home: Screen = (root, nav) => {
             type: 'button',
             text: '기록 처음부터',
             onclick: () => {
-              if (confirm('배운 기록과 급수증이 모두 지워집니다. 계속할까요?')) {
+              if (confirm('배운 기록·급수증·한자 카드가 모두 지워집니다. 계속할까요?')) {
                 srs.resetAll()
                 progress.resetAll()
+                cards.resetAll()
                 viewing = null
                 nav(home)
               }
@@ -177,6 +194,27 @@ const home: Screen = (root, nav) => {
         ]),
       ]),
     ]),
+  )
+}
+
+/** 단어장 — 모은 카드로 낱말을 만드는 곳 */
+function wordbookButton(grade: GradeId, nav: (s: Screen) => void): HTMLElement {
+  const n = cards.total()
+  const made = cards.completedWords().length
+  return el(
+    'button',
+    { class: 'gd-item gd-item--book', type: 'button', onclick: () => nav(wordbookScreen(grade, home)) },
+    [
+      el('span', { class: 'gd-item__emoji', text: '📒' }),
+      el('span', { class: 'gd-item__body' }, [
+        el('span', { class: 'gd-item__name', text: '단어장' }),
+        el('span', {
+          class: 'gd-item__desc',
+          text: n ? `카드 ${n}장 · 만든 낱말 ${made}개` : '카드를 모아 낱말을 만들어요',
+        }),
+      ]),
+      el('span', { class: 'gd-item__best', text: n ? `🂠 ${n}` : '' }),
+    ],
   )
 }
 
