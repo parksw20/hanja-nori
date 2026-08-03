@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+
+# 생성물 — scripts/build-strokes.mjs 가 hanzi-writer-data에서 굽는다 (npm run data)
+src/data/strokes.json

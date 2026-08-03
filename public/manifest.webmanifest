@@ -1,0 +1,20 @@
+{
+  "name": "한자놀이 — 한자 급수 놀이",
+  "short_name": "한자놀이",
+  "description": "한국어문회 전국한자능력검정시험 8급~6급 기준으로 노는 한자 학습 게임",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#131a30",
+  "theme_color": "#1b2340",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

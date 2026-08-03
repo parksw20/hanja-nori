@@ -1,0 +1,801 @@
+/*
+  한자놀이 스타일시트.
+  블록마다 고유 접두어를 쓴다 — hn-(공용) gd-(정원/홈) hm-(훈음) dk-(독음) ps-(필순) ex-(시험).
+  짧은 클래스명을 여러 블록에서 재사용하지 않는다.
+*/
+
+:root {
+  --hn-bg: #131a30;
+  --hn-bg-2: #1b2340;
+  --hn-card: #232c4e;
+  --hn-line: #3a4468;
+  --hn-ink: #e8ecff;
+  --hn-ink-dim: #98a2c8;
+  --hn-accent: #ffd166;
+  --hn-good: #3fc1a0;
+  --hn-bad: #ff5d73;
+  --hn-radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: radial-gradient(1200px 800px at 50% -10%, #26315c 0%, var(--hn-bg) 60%);
+  color: var(--hn-ink);
+  font-family: 'Pretendard', 'Malgun Gothic', system-ui, sans-serif;
+  overscroll-behavior: none;
+  /* 유치원 아이도 읽을 수 있게 기준 글씨를 키운다. 아래 rem 값들이 전부 여기에 따라 붙는다. */
+  font-size: 19px;
+}
+
+#app {
+  max-width: 1180px;
+  margin: 0 auto;
+  min-height: 100%;
+  padding: 12px 16px 32px;
+  position: relative;
+}
+
+/* 게임·시험 화면은 넓게 퍼지면 오히려 보기 나쁘다 — 가운데로 좁힌다 */
+.hm-wrap,
+.dk-wrap,
+.ps-wrap,
+.ex-wrap,
+.ex-notes,
+.hn-result,
+.hn-top {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 공용 ─────────────────────────────────────────────── */
+
+.hn-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0 14px;
+}
+
+.hn-top__back {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+  color: var(--hn-ink);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.hn-top__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  flex: 1;
+}
+
+.hn-top__right {
+  color: var(--hn-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.hn-btn {
+  padding: 13px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+  color: var(--hn-ink);
+  font-size: 1.15rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hn-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.hn-btn--primary {
+  background: var(--hn-accent);
+  border-color: var(--hn-accent);
+  color: #2a2100;
+}
+
+.hn-result {
+  text-align: center;
+  padding: 24px 12px;
+}
+
+.hn-result__emoji {
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.hn-result__title {
+  margin: 12px 0 8px;
+  font-size: 2.4rem;
+}
+
+.hn-result__line {
+  margin: 5px 0;
+  font-size: 1.1rem;
+  color: var(--hn-ink-dim);
+}
+
+.hn-result__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.hn-toast {
+  position: fixed;
+  left: 50%;
+  top: 22%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  z-index: 50;
+  pointer-events: none;
+  animation: hn-toast-in 0.9s ease forwards;
+}
+
+.hn-toast--good {
+  background: var(--hn-good);
+  color: #04231b;
+}
+
+.hn-toast--bad {
+  background: var(--hn-bad);
+  color: #2c0009;
+}
+
+@keyframes hn-toast-in {
+  0% { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.hn-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--hn-card);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.hn-bar__fill {
+  height: 100%;
+  width: 0;
+  background: var(--hn-accent);
+  transition: width 0.2s ease;
+}
+
+.hn-charsvg {
+  display: block;
+}
+
+/* ── 정원(홈) ─────────────────────────────────────────── */
+
+/* 넓은 화면: 왼쪽 메뉴 + 오른쪽 정원 */
+.gd-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 22px;
+  align-items: start;
+}
+
+.gd-side {
+  position: sticky;
+  top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.gd-main {
+  min-width: 0;
+}
+
+/* 좁은 화면(태블릿 세로·휴대폰): 한 줄로 쌓고 메뉴를 정원 아래로 */
+@media (max-width: 860px) {
+  .gd-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .gd-side {
+    position: static;
+    display: contents;
+  }
+
+  /* display:contents로 풀린 사이드바 요소들의 순서를 다시 잡는다 */
+  .gd-head { order: -1; }
+  .gd-main { order: 0; }
+  .gd-menu { order: 1; margin-top: 4px; }
+  .gd-foot { order: 2; }
+}
+
+.gd-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 0 16px;
+}
+
+.gd-head__title {
+  margin: 0;
+  font-size: 1.9rem;
+  letter-spacing: -0.02em;
+}
+
+.gd-head__grade {
+  color: var(--hn-accent);
+  font-weight: 700;
+}
+
+.gd-picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.gd-grade {
+  display: grid;
+  gap: 2px;
+  padding: 9px 4px;
+  border-radius: 12px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+  color: var(--hn-ink-dim);
+  cursor: pointer;
+}
+
+.gd-grade__name {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.gd-grade__mark {
+  font-size: 0.75rem;
+}
+
+.gd-grade--on {
+  border-color: var(--hn-accent);
+  background: #3a3520;
+  color: var(--hn-ink);
+}
+
+.gd-grade--locked {
+  opacity: 0.45;
+}
+
+.gd-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.gd-stat {
+  background: var(--hn-card);
+  border: 1px solid var(--hn-line);
+  border-radius: 12px;
+  padding: 10px 6px;
+  text-align: center;
+}
+
+.gd-stat__value {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.gd-stat__label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--hn-ink-dim);
+  margin-top: 2px;
+}
+
+.gd-garden {
+  display: grid;
+  /* 한자를 키운 만큼 칸도 넓혀야 글씨가 안 눌린다 */
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.gd-tile {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-bg-2);
+  color: var(--hn-ink-dim);
+  /* 메인화면 한자는 따로 더 키운다 (1.05rem → 1.5rem, 약 +5pt) */
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.gd-tile__growth {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  font-size: 0.62rem;
+}
+
+.gd-tile--sprout { color: var(--hn-ink); border-color: #48628c; }
+.gd-tile--sapling { color: var(--hn-ink); background: #23364a; border-color: #3f7a6a; }
+.gd-tile--tree { color: #fff; background: #234a3c; border-color: var(--hn-good); }
+.gd-tile--bloom { color: #2a2100; background: var(--hn-accent); border-color: var(--hn-accent); }
+
+.gd-tile--wilted {
+  border-color: var(--hn-bad);
+  box-shadow: inset 0 0 0 1px rgba(255, 93, 115, 0.4);
+}
+
+.gd-tile__peek {
+  position: absolute;
+  left: 50%;
+  bottom: 105%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: var(--hn-ink);
+  color: var(--hn-bg);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  z-index: 5;
+}
+
+.gd-legend {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  text-align: left;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  border: 1px dashed var(--hn-line);
+  background: rgba(35, 44, 78, 0.5);
+}
+
+.gd-legend__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--hn-ink);
+}
+
+.gd-legend__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: flex-start;
+}
+
+.gd-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gd-legend__icon {
+  font-size: 1.1rem;
+  width: 1.3em;
+  text-align: center;
+}
+
+.gd-legend__label {
+  font-size: 0.92rem;
+  color: var(--hn-ink-dim);
+}
+
+.gd-legend__hint {
+  font-size: 0.9rem;
+  color: var(--hn-accent);
+}
+
+.gd-menu {
+  display: grid;
+  gap: 10px;
+}
+
+.gd-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: var(--hn-radius);
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+  color: var(--hn-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.gd-item--exam {
+  border-color: var(--hn-accent);
+  background: linear-gradient(135deg, #2e2a1c, var(--hn-card));
+}
+
+.gd-item__emoji {
+  font-size: 2.2rem;
+}
+
+.gd-item__body {
+  flex: 1;
+  display: grid;
+}
+
+.gd-item__name {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.gd-item__desc {
+  font-size: 0.92rem;
+  color: var(--hn-ink-dim);
+}
+
+.gd-item__best {
+  font-size: 0.92rem;
+  color: var(--hn-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.gd-foot {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.gd-reset {
+  background: none;
+  border: none;
+  color: var(--hn-ink-dim);
+  font-size: 0.78rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── 훈음 짝맞추기 ────────────────────────────────────── */
+
+.hm-wrap {
+  text-align: center;
+}
+
+.hm-hint {
+  color: var(--hn-ink-dim);
+  margin: 0 0 6px;
+}
+
+.hm-status {
+  display: inline-block;
+  font-weight: 700;
+  color: var(--hn-accent);
+  margin-bottom: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hm-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.hm-card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 14px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-bg-2);
+  cursor: pointer;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+}
+
+.hm-card__back {
+  font-size: 1.8rem;
+  color: var(--hn-ink-dim);
+}
+
+.hm-card__front {
+  display: none;
+  color: var(--hn-ink);
+  word-break: keep-all;
+  line-height: 1.25;
+}
+
+.hm-card--hanja .hm-card__front { font-size: 3.1rem; }
+.hm-card--hunEum .hm-card__front { font-size: 1.3rem; font-weight: 700; }
+
+.hm-card--open { background: var(--hn-card); border-color: var(--hn-accent); }
+.hm-card--open .hm-card__back { display: none; }
+.hm-card--open .hm-card__front { display: block; }
+
+.hm-card--matched {
+  background: #1e3d34;
+  border-color: var(--hn-good);
+  cursor: default;
+}
+
+.hm-card--miss {
+  background: #40202a;
+  border-color: var(--hn-bad);
+}
+
+/* ── 독음 요격 ────────────────────────────────────────── */
+
+.dk-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.dk-hud {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.dk-score {
+  color: var(--hn-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.dk-sky {
+  position: relative;
+  /* 보기를 한 줄에 하나씩 놓으면서 아래가 길어졌다 — 하늘을 그만큼 줄인다 */
+  height: 32vh;
+  min-height: 190px;
+  border-radius: var(--hn-radius);
+  border: 1px solid var(--hn-line);
+  background: linear-gradient(180deg, #101733, #1d2748);
+  overflow: hidden;
+}
+
+.dk-faller {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 3.2rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 14px;
+  background: rgba(255, 209, 102, 0.14);
+  border: 1px solid var(--hn-accent);
+  white-space: nowrap;
+}
+
+.dk-faller--hit {
+  background: var(--hn-good);
+  border-color: var(--hn-good);
+  color: #04231b;
+}
+
+.dk-faller--boom {
+  background: var(--hn-bad);
+  border-color: var(--hn-bad);
+  color: #2c0009;
+}
+
+.dk-hint {
+  margin: 0;
+  text-align: center;
+  color: var(--hn-ink-dim);
+  font-size: 1rem;
+}
+
+.dk-choices {
+  display: grid;
+  /* 보기는 한 줄에 하나씩 — 아이가 눈으로 훑기 쉽고 글씨를 크게 쓸 수 있다 */
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.dk-choice {
+  padding: 14px 8px;
+  border-radius: 14px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+  color: var(--hn-ink);
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── 필순 따라쓰기 ────────────────────────────────────── */
+
+.ps-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.ps-counter {
+  color: var(--hn-accent);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ps-prompt {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.ps-stage {
+  width: 260px;
+  height: 260px;
+  border-radius: var(--hn-radius);
+  border: 1px solid var(--hn-line);
+  background: var(--hn-bg-2);
+  background-image: linear-gradient(var(--hn-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hn-line) 1px, transparent 1px);
+  background-size: 130px 130px;
+  background-position: center;
+  touch-action: none;
+}
+
+.ps-guide {
+  margin: 0;
+  color: var(--hn-ink-dim);
+  font-size: 1rem;
+}
+
+/* ── 모의고사 ─────────────────────────────────────────── */
+
+.ex-wrap {
+  display: grid;
+}
+
+.ex-hud {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.ex-counter {
+  color: var(--hn-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.ex-clock {
+  font-variant-numeric: tabular-nums;
+  color: var(--hn-good);
+}
+
+.ex-clock--hurry {
+  color: var(--hn-bad);
+}
+
+.ex-stage {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.ex-kind {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2a2100;
+  background: var(--hn-accent);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.ex-ask {
+  margin: 0;
+  color: var(--hn-ink-dim);
+}
+
+.ex-stem {
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+  padding: 10px 20px;
+  border-radius: var(--hn-radius);
+  border: 1px solid var(--hn-line);
+  background: var(--hn-bg-2);
+  font-weight: 700;
+  width: 100%;
+  max-width: 420px;
+}
+
+.ex-stem--char { font-size: 5rem; }
+.ex-stem--word { font-size: 3.4rem; letter-spacing: 0.08em; }
+.ex-stem--svg { padding: 6px; }
+/* 뜻풀이 문제의 설명문은 한자가 아니라 문장이다 */
+.ex-stem--text { font-size: 1.4rem; line-height: 1.5; word-break: keep-all; text-align: center; }
+
+.ex-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.ex-choice {
+  padding: 16px 8px;
+  border-radius: 14px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+  color: var(--hn-ink);
+  font-size: 1.35rem;
+  font-weight: 700;
+  cursor: pointer;
+  word-break: keep-all;
+}
+
+/* 보기가 한자면 크게 — 획을 봐야 고를 수 있다 */
+.ex-choice--hanja {
+  font-size: 2.2rem;
+}
+
+.ex-choice--on {
+  border-color: var(--hn-accent);
+  background: #3a3520;
+}
+
+.ex-nav {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.ex-nav .hn-btn {
+  flex: 1;
+  padding: 12px 6px;
+  font-size: 1rem;
+}
+
+.ex-notes {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border-radius: var(--hn-radius);
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+}
+
+.ex-notes__title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--hn-bad);
+}
+
+.ex-notes__row {
+  margin: 5px 0;
+  font-size: 1.02rem;
+  color: var(--hn-ink-dim);
+}
+
+/* 좁은 화면(휴대폰 세로)에서 정원이 너무 잘게 쪼개지지 않게 */
+@media (max-width: 460px) {
+  .gd-garden { grid-template-columns: repeat(6, 1fr); }
+  .gd-stats { grid-template-columns: repeat(2, 1fr); }
+}

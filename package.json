@@ -1,0 +1,27 @@
+{
+  "name": "hanja-nori",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "한자놀이 — 어문회 전국한자능력검정시험 급수 기준 한자 학습 게임 (8급~6급)",
+  "scripts": {
+    "data": "node scripts/build-strokes.mjs",
+    "predev": "npm run data",
+    "dev": "vite",
+    "prebuild": "npm run data",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "pretest": "npm run data",
+    "test": "tsx test/data.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "hanzi-writer-data": "^2.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  },
+  "dependencies": {
+    "hanzi-writer": "^3.7.0"
+  }
+}

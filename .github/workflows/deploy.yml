@@ -1,0 +1,46 @@
+name: Deploy to GitHub Pages
+
+# main에 밀면 빌드해서 Pages에 올린다. dist를 저장소에 커밋하지 않기 위함.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # 획순 데이터는 생성물이라 저장소에 없다 — 여기서 굽는다
+      - run: npm run data
+      # 데이터 무결성이 깨진 채로 배포되면 아이가 틀린 한자를 배운다
+      - run: npm test
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#1b2340" />
+    <meta name="description" content="한국어문회 전국한자능력검정시험 8급~6급 기준으로 노는 한자 학습 게임" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="한자놀이" />
+    <title>한자놀이 · 급수 한자 게임</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+    <script>
+      // 서비스 워커는 배포본(https 또는 localhost)에서만. 등록 실패해도 게임은 돌아가야 한다.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register(new URL('sw.js', document.baseURI)).catch(() => {})
+        })
+      }
+    </script>
+  </body>
+</html>
