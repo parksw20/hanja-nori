@@ -16,11 +16,23 @@
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
     <script>
-      // 서비스 워커는 배포본(https 또는 localhost)에서만. 등록 실패해도 게임은 돌아가야 한다.
+      // 서비스 워커는 **배포본에서만** 등록한다.
+      // 개발 서버(localhost)에서 등록했더니 고친 코드가 아니라 캐시된 옛 코드가 계속 떠서,
+      // 멀쩡히 고친 기능을 "안 고쳐졌다"고 몇 번이나 오판했다. 개발 중엔 등록하지 않고,
+      // 예전에 등록해 둔 것이 남아 있으면 스스로 해제한다.
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register(new URL('sw.js', document.baseURI)).catch(() => {})
-        })
+        var isLocal = ['localhost', '127.0.0.1', '[::1]'].indexOf(location.hostname) !== -1
+        if (isLocal) {
+          navigator.serviceWorker.getRegistrations().then(function (rs) {
+            rs.forEach(function (r) {
+              r.unregister()
+            })
+          })
+        } else {
+          window.addEventListener('load', function () {
+            navigator.serviceWorker.register(new URL('sw.js', document.baseURI)).catch(function () {})
+          })
+        }
       }
     </script>
   </body>

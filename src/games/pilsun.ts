@@ -55,6 +55,8 @@ export const pilsunGame =
     const HINT_STEP = 800 // 획 사이 간격(ms). hanzi-writer 기본 1000ms보다 20% 빠르다.
     const HINT_FADE = 260
     let hintTimers: number[] = []
+    /** 지금까지 바르게 그은 획 수 — 힌트는 이 다음 획부터 보여 준다 */
+    let drawnCount = 0
 
     // 화면에 실제로 붙어 있는 글씨판을 문서에서 찾는다.
     // 클로저의 stage가 이전 판의 것일 수 있어(판을 갈면 새 화면이 마운트된다) 눈에 보이는 쪽을 기준으로 삼는다.
@@ -72,6 +74,10 @@ export const pilsunGame =
       const src = host.querySelector('svg:not(.ps-hintlayer) g[transform]')
       if (!src) return
 
+      // 이미 그은 획은 다시 보여 줄 필요가 없다 — **다음에 그을 획부터** 알려 준다
+      const remaining = STROKES[char].strokes.slice(drawnCount)
+      if (remaining.length === 0) return
+
       const NS = 'http://www.w3.org/2000/svg'
       const svg = document.createElementNS(NS, 'svg')
       svg.setAttribute('class', 'ps-hintlayer')
@@ -80,9 +86,11 @@ export const pilsunGame =
       const g = document.createElementNS(NS, 'g')
       g.setAttribute('transform', src.getAttribute('transform')!)
       svg.append(g)
-      host.append(svg)
+      // 글씨판 **맨 아래**에 깔아 둔다. 내가 쓴 획과 안내선이 힌트 위로 올라와야
+      // 어디까지 썼는지가 안 가린다 (hanzi-writer의 svg는 배경이 투명하다).
+      host.prepend(svg)
 
-      const paths = STROKES[char].strokes.map((d) => {
+      const paths = remaining.map((d) => {
         const p = document.createElementNS(NS, 'path')
         p.setAttribute('d', d)
         p.setAttribute('fill', '#ffd166') // 노란색
@@ -155,6 +163,7 @@ export const pilsunGame =
       prompt.textContent = `「${he}」 — ${strokeCount}획`
       tts.speak(he)
       counter.textContent = `${idx + 1} / ${ROUND}`
+      drawnCount = 0
       cleanupWriter()
 
       writer = HanziWriter.create(stage, char, {
@@ -163,9 +172,10 @@ export const pilsunGame =
         padding: 12,
         showCharacter: false,
         showOutline: true,
-        strokeColor: '#3fc1a0',
-        outlineColor: '#3a4468',
-        drawingColor: '#ffd166',
+        strokeColor: '#7fd4ff',
+        // 안내선은 반투명이어야 아래 깔린 노란 힌트가 비쳐 보인다
+        outlineColor: 'rgba(120, 140, 200, 0.45)',
+        drawingColor: '#7fd4ff',
         drawingWidth: 26,
         // 힌트 획은 노란색. 기본 속도(2)보다 20% 빠르게.
         highlightColor: '#ffd166',
@@ -176,6 +186,12 @@ export const pilsunGame =
       writer.quiz({
         // 두 번 삐끗하면 다음 획을 살짝 비춰 준다 (아이가 막혀서 그만두지 않도록)
         showHintAfterMisses: 2,
+        // 힌트가 "여기부터"를 알려면 어디까지 썼는지 알아야 한다.
+        // 보여 주는 중에 그어도 힌트를 지우지 않는다 — 방금 그은 하늘색 획이 노란 힌트를 덮으므로
+        // 화면은 저절로 "여기까지 썼고 이제 여기부터"가 된다.
+        onCorrectStroke: (info: { strokeNum: number }) => {
+          drawnCount = info.strokeNum + 1
+        },
         onMistake: () => {
           mistakes++
           totalMistakes++
