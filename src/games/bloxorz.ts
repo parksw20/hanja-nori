@@ -182,7 +182,13 @@ export const bloxorzGame =
     const status = el('span', { class: 'bx-status' })
     const hint = el('p', { class: 'bx-hint', text: '블록을 굴려 노란 구멍에 세워서 빠뜨려요' })
 
-    /** 장면 기울기 — 이 값이 바뀌면 아래 높이 계산의 계수도 같이 바뀐다 */
+    /**
+     * 장면 기울기 — 이 값이 바뀌면 아래 높이 계산의 계수도 같이 바뀐다.
+     *
+     * **Z축(요) 회전은 넣지 않는다.** 비스듬히 돌려 놓으면 그림은 예쁘지만
+     * ▲를 눌렀을 때 블록이 화면에서 대각선으로 움직여 방향키와 안 맞는다.
+     * 기울이기만 하면 행 = 화면 세로, 열 = 화면 가로가 그대로 유지된다.
+     */
     const TILT = 58 // rotateX(도)
     const SLAB = 0.16 // 바닥 판 두께 (칸 크기 대비)
 
@@ -195,18 +201,18 @@ export const bloxorzGame =
     }
 
     function draw() {
-      // 칸 크기: rotateZ(-45°) 때문에 가로 폭은 (열+행)에 비례한다
+      // 기울이기만 하므로 가로 폭은 열 수에만 비례한다 (원근 때문에 뒷줄은 오히려 좁아진다)
       const avail = view.clientWidth || 360
-      const S = Math.max(26, Math.min(64, Math.floor(avail / (0.78 * (lv.cols + lv.rows)))))
+      const S = Math.max(30, Math.min(96, Math.floor((avail - 20) / lv.cols)))
       const T = Math.round(S * SLAB)
       const W = lv.cols * S
       const H = lv.rows * S
 
       scene.style.width = `${W}px`
       scene.style.height = `${H}px`
-      // 기울여 놓은 바닥의 세로 투영 + 서 있는 블록(2칸) 높이만큼 자리를 잡아 준다
+      // 기울여 놓은 바닥의 세로 투영 + 서 있는 블록(2칸)이 위로 뻗는 높이
       const tiltRad = (TILT * Math.PI) / 180
-      view.style.height = `${Math.round(((W + H) / Math.SQRT2) * Math.cos(tiltRad) + 2 * S + 28)}px`
+      view.style.height = `${Math.round(H * Math.cos(tiltRad) + 2 * S * Math.sin(tiltRad) + 36)}px`
 
       const parts: HTMLElement[] = []
 
@@ -219,8 +225,8 @@ export const bloxorzGame =
           const y = r * S
           const top = t === 2 ? 'bx-face--goal' : 'bx-face--floor'
           parts.push(face(top, S, S, `translate3d(${x}px, ${y}px, 0px)`))
+          // 옆면(x축에 수직인 면)은 정면에서 보면 두께가 0이라 안 보인다 → 앞면만 그린다
           parts.push(face('bx-face--slab', S, T, `translate3d(${x}px, ${y + S}px, 0px) rotateX(-90deg)`))
-          parts.push(face('bx-face--slab2', T, S, `translate3d(${x + S}px, ${y}px, 0px) rotateY(90deg)`))
         }
       }
 
@@ -233,13 +239,61 @@ export const bloxorzGame =
 
       // 바닥에 드리운 그림자 — 블록이 어느 칸 위에 있는지 바로 읽힌다
       parts.push(face('bx-face--shadow', w, d, `translate3d(${bx}px, ${by}px, 1px)`))
+      // 상자 다섯 면을 다 그린다. 원근(perspective) 덕분에 블록이 가운데를 벗어나면
+      // 옆면도 실제로 보인다 — 가려지는 면은 브라우저가 깊이로 알아서 정리한다.
       parts.push(face('bx-face--btop', w, d, `translate3d(${bx}px, ${by}px, ${h}px)`))
       parts.push(face('bx-face--bfront', w, h, `translate3d(${bx}px, ${by + d}px, ${h}px) rotateX(-90deg)`))
-      parts.push(face('bx-face--bside', h, d, `translate3d(${bx + w}px, ${by}px, ${h}px) rotateY(90deg)`))
+      parts.push(face('bx-face--bback', w, h, `translate3d(${bx}px, ${by}px, ${h}px) rotateX(-90deg)`))
+      parts.push(face('bx-face--bright', h, d, `translate3d(${bx + w}px, ${by}px, ${h}px) rotateY(90deg)`))
+      parts.push(face('bx-face--bleft', h, d, `translate3d(${bx}px, ${by}px, ${h}px) rotateY(90deg)`))
 
       scene.replaceChildren(...parts)
-      scene.classList.toggle('bx-scene--stand', block.o === 'stand')
       status.textContent = `${levelNo + 1}단계 · ${moves}번 굴림 · ${block.o === 'stand' ? '서 있음' : '누움'}`
+
+      // 블록이 서면 카메라를 살짝 낮춰 키가 더 드러나게 한다
+      const tilt = block.o === 'stand' ? TILT - 5 : TILT
+
+      /*
+        판이 뷰에 딱 맞게 자동 보정.
+
+        원근이 걸려 있으면 "가로 = 열수 × 칸크기"라는 계산이 안 맞는다 — 앞줄이 확대되기 때문.
+        게다가 `scale()`은 원근 **안쪽**에서 걸려서 깊이까지 같이 줄인다. 즉 한 번 재서 한 번
+        줄이면 딱 안 맞는다(비선형). 그래서 **줄이고 다시 재기를 몇 번 반복해** 수렴시킨다.
+        마지막 이동(translate)은 원근 바깥의 순수 화면 이동이라 한 번에 정확히 가운데로 간다.
+      */
+      const vb = view.getBoundingClientRect()
+      if (vb.width > 0 && parts.length) {
+        const bbox = () => {
+          const rs = [...scene.children].map((c) => (c as HTMLElement).getBoundingClientRect())
+          return {
+            l: Math.min(...rs.map((r) => r.left)),
+            r: Math.max(...rs.map((r) => r.right)),
+            t: Math.min(...rs.map((r) => r.top)),
+            b: Math.max(...rs.map((r) => r.bottom)),
+          }
+        }
+        // translate도 원근 안쪽이라 깊이에 따라 화면 이동량이 달라진다 → 크기와 위치를 같이 수렴시킨다
+        const pad = 16
+        const cx = vb.left + vb.width / 2
+        const cy = vb.top + vb.height / 2
+        let k = 1
+        let dx = 0
+        let dy = 0
+        for (let i = 0; i < 5; i++) {
+          scene.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${k.toFixed(4)}) rotateX(${tilt}deg)`
+          const bb = bbox()
+          const kk = Math.min(1, (vb.width - pad) / (bb.r - bb.l), (vb.height - pad) / (bb.b - bb.t))
+          const ex = cx - (bb.l + bb.r) / 2
+          const ey = cy - (bb.t + bb.b) / 2
+          if (kk > 0.999 && Math.abs(ex) < 0.5 && Math.abs(ey) < 0.5) break
+          k *= kk
+          dx += ex
+          dy += ey
+        }
+        scene.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${k.toFixed(4)}) rotateX(${tilt}deg)`
+      } else {
+        scene.style.transform = `rotateX(${tilt}deg)`
+      }
     }
 
     function nextLevel() {

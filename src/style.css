@@ -842,27 +842,30 @@ body {
   면의 위치·크기는 JS가 px로 넣는다 (칸 크기가 화면 폭에 따라 달라지므로).
 */
 .bx-view {
-  perspective: 1100px;
+  /* 원근을 짧게 잡을수록 옆면이 잘 보인다 (정사영이면 옆면이 아예 안 보인다) */
+  perspective: 820px;
   display: grid;
   place-items: center;
-  width: min(94vw, 460px);
+  /* vw로 잡으면 #app 안쪽 여백을 모르고 1~2px 삐져나온다 — 부모 기준으로 잡는다 */
+  width: min(100%, 640px);
   border-radius: var(--hn-radius);
   border: 1px solid var(--hn-line);
-  background: radial-gradient(120% 90% at 50% 20%, #232e55, var(--hn-bg-2));
+  background: radial-gradient(120% 90% at 50% 25%, #2b3766, #1a2244);
   overflow: hidden;
 }
 
+/*
+  실제 transform은 JS가 넣는다 (기울기 + 뷰에 맞추는 축소·이동).
+  Z축 회전은 일부러 넣지 않는다: 비스듬히 돌리면 ▲를 눌렀을 때 블록이 화면에서
+  대각선으로 움직여 방향키와 안 맞는다. 기울이기만 하면 ▲=위, ▶=오른쪽이 그대로 맞는다.
+*/
 .bx-scene {
   position: relative;
   transform-style: preserve-3d;
-  /* 기울기(58도)는 bloxorz.ts의 TILT와 같아야 한다 — 높이 계산이 이 값에 물려 있다 */
-  transform: rotateX(58deg) rotateZ(-45deg);
-  transition: transform 0.25s ease;
-}
-
-/* 블록이 서면 카메라를 살짝 낮춰 키가 더 잘 보이게 */
-.bx-scene--stand {
-  transform: rotateX(54deg) rotateZ(-45deg);
+  /*
+    transform에 transition을 걸면 안 된다. 아래 자동 맞춤이 "그리고 → 재고 → 줄이는"
+    2단계라, 전환 중에 재면 중간값이 나와 판이 뷰 밖으로 삐져나간다.
+  */
 }
 
 .bx-view--fall {
@@ -884,24 +887,21 @@ body {
 
 /* 바닥 윗면 */
 .bx-face--floor {
-  background: #3b4a7d;
-  box-shadow: inset 0 0 0 1px #4b5c96;
+  background: linear-gradient(160deg, #55689f, #44548a);
+  box-shadow: inset 0 0 0 2px #6b7cb4;
 }
 
 /* 목표 구멍 */
 .bx-face--goal {
   background: #2a2410;
-  box-shadow: inset 0 0 0 4px var(--hn-accent), inset 0 0 22px rgba(255, 209, 102, 0.55);
+  box-shadow: inset 0 0 0 5px var(--hn-accent), inset 0 0 26px rgba(255, 209, 102, 0.7);
 }
 
-/* 바닥 두께 — 앞쪽·옆쪽 두 면만 그린다 (나머지는 안 보인다) */
+/* 바닥 두께 — 앞면만 그린다 (옆면은 정면에서 두께가 0이라 안 보인다) */
 .bx-face--slab {
-  background: #26315c;
+  background: #2c3766;
 }
 
-.bx-face--slab2 {
-  background: #1c2447;
-}
 
 /* 블록이 바닥에 드리우는 그림자 — 어느 칸 위인지 바로 읽힌다 */
 .bx-face--shadow {
@@ -910,17 +910,29 @@ body {
 }
 
 /* 블록 — 윗면이 가장 밝고 옆으로 갈수록 어둡다. 이 명암이 입체를 만든다 */
+/* 블록 다섯 면 — 윗면이 가장 밝고 옆·뒤로 갈수록 어둡다. 이 명암이 입체를 만든다 */
 .bx-face--btop {
-  background: linear-gradient(140deg, #b8ecff, #7fd4ff);
-  box-shadow: inset 0 0 0 1px #d8f5ff;
+  background: linear-gradient(140deg, #d9f6ff, #86d8ff);
+  box-shadow: inset 0 0 0 2px #eefcff;
 }
 
 .bx-face--bfront {
-  background: linear-gradient(180deg, #57aede, #3d8fbd);
+  background: linear-gradient(180deg, #5cb6e6, #2f7ba8);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4);
 }
 
-.bx-face--bside {
-  background: linear-gradient(90deg, #2f7ba8, #276b93);
+.bx-face--bback {
+  background: #24638a;
+}
+
+.bx-face--bright {
+  background: linear-gradient(90deg, #3f95c6, #276b93);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.bx-face--bleft {
+  background: linear-gradient(90deg, #276b93, #3f95c6);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
 .bx-hint {
