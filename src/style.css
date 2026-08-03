@@ -982,6 +982,12 @@ body {
   padding: 8px 16px;
 }
 
+.bx-locked {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--hn-ink-dim);
+}
+
 .bx-prize {
   display: grid;
   justify-items: center;

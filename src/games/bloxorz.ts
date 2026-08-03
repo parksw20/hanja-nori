@@ -193,8 +193,13 @@ export const bloxorzGame =
   (grade: GradeId, home: Screen): Screen =>
   (root, nav) => {
     const cleared = progress.bestOf(`${GAME_ID}.level`)
-    // 깬 데까지는 건너뛰고, 다 깼으면 무작위로 한 판
-    let levelNo = cleared >= LEVELS.length ? Math.floor(Math.random() * LEVELS.length) : cleared
+    /**
+     * 열린 단계 수 = 깬 단계 + 1. **앞 단계를 깨야 다음 단계가 열린다.**
+     * 깬 단계는 다시 골라 놀 수 있지만(쉬운 판으로 돌아가 카드를 더 모을 수 있게),
+     * 아직 못 깬 단계로는 건너뛸 수 없다.
+     */
+    const unlocked = Math.min(cleared + 1, LEVELS.length)
+    let levelNo = Math.min(cleared, LEVELS.length - 1)
     let lv = parseLevel(LEVELS[levelNo])
     let block: Block = { ...lv.start }
     let moves = 0
@@ -278,7 +283,8 @@ export const bloxorzGame =
 
       scene.replaceChildren(...parts)
       // 전체 단계 수를 같이 보여 준다 — 안 그러면 "여기서 안 넘어가나?" 싶어진다
-      status.textContent = `${levelNo + 1} / ${LEVELS.length}단계 · ${moves}번 굴림 · ${
+      const 새단계 = levelNo + 1 === unlocked && cleared < LEVELS.length
+      status.textContent = `${levelNo + 1} / ${LEVELS.length}단계${새단계 ? ' 🔓' : ''} · ${moves}번 굴림 · ${
         block.o === 'stand' ? '서 있음' : '누움'
       }`
 
@@ -328,8 +334,9 @@ export const bloxorzGame =
       }
     }
 
-    function nextLevel() {
-      levelNo = (levelNo + 1) % LEVELS.length
+    /** 열린 단계 안에서만 돌린다 */
+    function cycleLevel() {
+      levelNo = (levelNo + 1) % unlocked
       lv = parseLevel(LEVELS[levelNo])
       block = { ...lv.start }
       moves = 0
@@ -432,12 +439,15 @@ export const bloxorzGame =
         view,
         hint,
         pad,
-        el('button', {
-          class: 'hn-btn bx-skip',
-          type: 'button',
-          text: '다른 단계',
-          onclick: nextLevel,
-        }),
+        // 열린 단계가 하나뿐이면 고를 것이 없으니 버튼도 없다
+        unlocked > 1
+          ? el('button', {
+              class: 'hn-btn bx-skip',
+              type: 'button',
+              text: `깬 단계 다시하기 (1~${unlocked - 1}단계)`,
+              onclick: cycleLevel,
+            })
+          : el('p', { class: 'bx-locked', text: '이 단계를 깨야 다음 단계가 열려요' }),
       ]),
     )
     draw()
