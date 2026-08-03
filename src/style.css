@@ -90,6 +90,19 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* 상단 바 오른쪽 버튼 */
+.hn-top__action {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--hn-accent);
+  background: #3a3520;
+  color: var(--hn-accent);
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 .hn-btn {
   padding: 13px 20px;
   border-radius: 12px;
@@ -1257,6 +1270,11 @@ body {
 .wb-card--picked {
   border-color: var(--hn-accent);
   background: #3a3520;
+}
+
+/* 단어장 본문의 카드는 보기 전용이라 누를 수 없다 */
+.wb-card--static {
+  cursor: default;
 }
 
 .wb-card__char {

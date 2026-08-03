@@ -35,13 +35,18 @@ export function createNav(root: HTMLElement): Nav {
   return nav
 }
 
-/** 상단 바 — 뒤로가기 + 제목 + 오른쪽 상태 */
-export function topBar(title: string, onBack: () => void, right = ''): HTMLElement {
+/** 상단 바 — 뒤로가기 + 제목 + 오른쪽(글자 또는 버튼) */
+export function topBar(title: string, onBack: () => void, right: string | HTMLElement = ''): HTMLElement {
   return el('header', { class: 'hn-top' }, [
     el('button', { class: 'hn-top__back', type: 'button', 'aria-label': '뒤로', onclick: onBack, text: '←' }),
     el('h1', { class: 'hn-top__title', text: title }),
-    el('span', { class: 'hn-top__right', text: right }),
+    typeof right === 'string' ? el('span', { class: 'hn-top__right', text: right }) : right,
   ])
+}
+
+/** 상단 바 오른쪽에 놓는 작은 버튼 */
+export function topAction(label: string, onClick: () => void): HTMLElement {
+  return el('button', { class: 'hn-top__action', type: 'button', text: label, onclick: onClick })
 }
 
 /** 큰 결과 화면 (판 끝났을 때) */

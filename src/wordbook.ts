@@ -8,7 +8,94 @@ import type { GradeId, Word } from './data/types'
 import { cumulative, wordsUpTo, hunEumOf } from './data/words'
 import * as cards from './cards'
 import * as tts from './tts'
-import { el, prizeModal, toast, topBar, type Screen } from './ui'
+import { el, prizeModal, toast, topAction, topBar, type Screen } from './ui'
+
+/**
+ * 카드 바꾸기 — 안 쓰는 카드 5장을 원하는 한자 한 장으로.
+ * 단어장 본문에 두면 자리를 많이 먹는데 자주 쓰지는 않아서 상단 버튼에서 들어오는 별도 화면으로 뺐다.
+ */
+export const exchangeScreen =
+  (grade: GradeId, home: Screen): Screen =>
+  (root, nav) => {
+    let picked: string[] = []
+
+    const pool = cumulative(grade)
+    const wantSelect = el('select', { class: 'wb-swap__select' })
+    for (const h of pool) wantSelect.append(el('option', { value: h.char, text: `${h.char} ${h.hun} ${h.eum}` }))
+
+    const hand = el('div', { class: 'wb-hand' })
+    const bar = el('div', { class: 'wb-swap' })
+
+    function render() {
+      const held = cards.held()
+      hand.replaceChildren(
+        ...(held.length
+          ? held.map(({ char, n }) => {
+              const chosen = picked.filter((p) => p === char).length
+              const card = el(
+                'button',
+                { class: `wb-card ${chosen ? 'wb-card--picked' : ''}`, type: 'button', title: `${char} ${n}장` },
+                [
+                  el('span', { class: 'wb-card__char', text: char }),
+                  el('span', { class: 'wb-card__n', text: `×${n}` }),
+                  chosen ? el('span', { class: 'wb-card__pick', text: `고름 ${chosen}` }) : el('span', {}),
+                ],
+              )
+              card.addEventListener('click', () => {
+                const already = picked.filter((p) => p === char).length
+                if (already < n && picked.length < cards.EXCHANGE_COST) picked.push(char)
+                else picked = picked.filter((p) => p !== char) // 다시 누르면 이 글자는 다 뺀다
+                render()
+              })
+              return card
+            })
+          : [el('p', { class: 'wb-empty', text: '카드가 없어요.' })]),
+      )
+
+      const ready = picked.length === cards.EXCHANGE_COST
+      bar.replaceChildren(
+        el('span', { class: 'wb-swap__picked', text: picked.length ? picked.join(' ') : '고른 카드 없음' }),
+        wantSelect,
+        el('button', {
+          class: `hn-btn ${ready ? 'hn-btn--primary' : ''}`,
+          type: 'button',
+          text: ready ? '바꾸기' : `${cards.EXCHANGE_COST - picked.length}장 더 고르세요`,
+          disabled: !ready,
+          onclick: () => {
+            const want = wantSelect.value
+            if (cards.exchange(picked, want)) {
+              picked = []
+              tts.speak(hunEumOf(want))
+              root.append(
+                prizeModal({
+                  char: want,
+                  title: `${hunEumOf(want)} 카드`,
+                  lines: [`${want} 카드로 바꿨어요`, `모두 ${cards.count(want)}장`],
+                  onConfirm: render,
+                }),
+              )
+            }
+          },
+        }),
+      )
+    }
+
+    root.append(
+      topBar('카드 바꾸기', () => nav(wordbookScreen(grade, home))),
+      el('div', { class: 'wb-wrap' }, [
+        el('section', { class: 'wb-sec' }, [
+          el('h2', { class: 'wb-sec__title', text: `${cards.EXCHANGE_COST}장 → 1장` }),
+          el('p', {
+            class: 'wb-swap__help',
+            text: `안 쓰는 카드를 ${cards.EXCHANGE_COST}장 골라 원하는 한자 한 장으로 바꿔요. 같은 글자든 다른 글자든 괜찮아요.`,
+          }),
+          hand,
+          bar,
+        ]),
+      ]),
+    )
+    render()
+  }
 
 /**
  * 낱말 만들기 — 카드를 한 글자씩 끼워 완성한다.
@@ -126,9 +213,6 @@ export const buildScreen =
 export const wordbookScreen =
   (grade: GradeId, home: Screen): Screen =>
   (root, nav) => {
-    /** 교환에 내려고 고른 카드들 (같은 글자를 여러 장 고를 수 있어 배열) */
-    let picked: string[] = []
-
     function render() {
       const makeable = cards.completableWords(grade)
       const nearly = cards.nearlyWords(grade).slice(0, 6)
@@ -176,74 +260,24 @@ export const wordbookScreen =
           ])
         : null
 
-      // ── ③ 가진 카드 (누르면 교환용으로 고른다) ─────────────
+      // ── ③ 가진 카드 (보기 전용 — 바꾸기는 상단 버튼에서 따로) ──
       const heldSection = el('section', { class: 'wb-sec' }, [
         el('h2', { class: 'wb-sec__title', text: `가진 카드 ${totalCards}장` }),
         held.length
           ? el(
               'div',
               { class: 'wb-hand' },
-              held.map(({ char, n }) => {
-                const chosen = picked.filter((p) => p === char).length
-                const card = el(
-                  'button',
-                  {
-                    class: `wb-card ${chosen ? 'wb-card--picked' : ''}`,
-                    type: 'button',
-                    title: `${char} ${n}장`,
-                  },
-                  [
-                    el('span', { class: 'wb-card__char', text: char }),
-                    el('span', { class: 'wb-card__n', text: `×${n}` }),
-                    chosen ? el('span', { class: 'wb-card__pick', text: `고름 ${chosen}` }) : el('span', {}),
-                  ],
-                )
-                card.addEventListener('click', () => {
-                  const already = picked.filter((p) => p === char).length
-                  if (already < n && picked.length < cards.EXCHANGE_COST) picked.push(char)
-                  else picked = picked.filter((p) => p !== char) // 다시 누르면 이 글자는 다 뺀다
-                  render()
-                })
-                return card
-              }),
+              held.map(({ char, n }) =>
+                el('div', { class: 'wb-card wb-card--static', title: `${char} ${hunEumOf(char)} ${n}장` }, [
+                  el('span', { class: 'wb-card__char', text: char }),
+                  el('span', { class: 'wb-card__n', text: `×${n}` }),
+                ]),
+              ),
             )
           : el('p', { class: 'wb-empty', text: '카드가 없어요.' }),
       ])
 
-      // ── ④ 카드 바꾸기 ────────────────────────────────────
-      const pool = cumulative(grade)
-      const swapSelect = el('select', { class: 'wb-swap__select' })
-      for (const h of pool) swapSelect.append(el('option', { value: h.char, text: `${h.char} ${h.hun} ${h.eum}` }))
-
-      const ready = picked.length === cards.EXCHANGE_COST
-      const swapBtn = el('button', {
-        class: `hn-btn ${ready ? 'hn-btn--primary' : ''}`,
-        type: 'button',
-        text: ready ? '바꾸기' : `${cards.EXCHANGE_COST - picked.length}장 더 고르세요`,
-        disabled: !ready,
-        onclick: () => {
-          if (cards.exchange(picked, swapSelect.value)) {
-            toast(root, `${swapSelect.value} 카드로 바꿨어요!`, 'good')
-            picked = []
-            render()
-          }
-        },
-      })
-
-      const swapSection = el('section', { class: 'wb-sec' }, [
-        el('h2', { class: 'wb-sec__title', text: `카드 바꾸기 (${cards.EXCHANGE_COST}장 → 1장)` }),
-        el('p', {
-          class: 'wb-swap__help',
-          text: `안 쓰는 카드를 ${cards.EXCHANGE_COST}장 골라 원하는 한자 한 장으로 바꿔요. 위에서 카드를 눌러 고르세요.`,
-        }),
-        el('div', { class: 'wb-swap' }, [
-          el('span', { class: 'wb-swap__picked', text: picked.length ? picked.join(' ') : '고른 카드 없음' }),
-          swapSelect,
-          swapBtn,
-        ]),
-      ])
-
-      // ── ⑤ 만든 낱말 ─────────────────────────────────────
+      // ── ④ 만든 낱말 ─────────────────────────────────────
       const totalWords = wordsUpTo(grade).length
       const madeSection = el('section', { class: 'wb-sec' }, [
         el('h2', { class: 'wb-sec__title', text: `만든 낱말 ${madeWords.length} / ${totalWords}` }),
@@ -265,11 +299,16 @@ export const wordbookScreen =
       ])
 
       root.replaceChildren(
-        topBar('단어장', () => nav(home), `카드 ${totalCards}장`),
+        // 카드 바꾸기는 자리를 많이 먹는데 자주 쓰지는 않는다 → 상단 오른쪽 버튼으로 뺐다
+        topBar(
+          '단어장',
+          () => nav(home),
+          topAction(`🔄 카드 바꾸기 (${totalCards})`, () => nav(exchangeScreen(grade, home))),
+        ),
         el(
           'div',
           { class: 'wb-wrap' },
-          [makeSection, nearlySection, heldSection, swapSection, madeSection].filter(Boolean) as HTMLElement[],
+          [makeSection, nearlySection, heldSection, madeSection].filter(Boolean) as HTMLElement[],
         ),
       )
     }
