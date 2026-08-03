@@ -85,6 +85,45 @@ export function submit(): void {
   tone(840, 0.14, { delay: 0.09 })
 }
 
+/**
+ * 박수 — 짧은 잡음 조각을 수십 번 흩뿌려 만든다.
+ *
+ * 손뼉 하나는 "넓은 주파수의 아주 짧은 잡음"이라, 화이트노이즈를 밴드패스로 걸러
+ * 4ms 만에 튀었다가 50ms 안에 사라지게 하면 그럴듯한 박수가 된다.
+ * 시작 시각·세기·음색을 조금씩 흩어 놓아야 한 사람이 아니라 여럿이 치는 소리로 들린다.
+ */
+export function applause(delay = 0): void {
+  const ac = audio()
+  if (!ac) return
+
+  // 손뼉 한 번 분량의 잡음. 조각 하나를 여러 번 재사용한다.
+  const len = Math.floor(ac.sampleRate * 0.06)
+  const buf = ac.createBuffer(1, len, ac.sampleRate)
+  const d = buf.getChannelData(0)
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1
+
+  const t0 = ac.currentTime + delay
+  const span = 1.9
+  for (let i = 0; i < 48; i++) {
+    // 앞쪽에 몰렸다가 뒤로 갈수록 뜸해지게 (박수는 우르르 시작해 잦아든다)
+    const t = t0 + Math.pow(Math.random(), 0.65) * span
+    const src = ac.createBufferSource()
+    src.buffer = buf
+    const bp = ac.createBiquadFilter()
+    bp.type = 'bandpass'
+    bp.frequency.value = 1100 + Math.random() * 1900
+    bp.Q.value = 0.7
+    const g = ac.createGain()
+    const peak = 0.035 + Math.random() * 0.04
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.004)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05 + Math.random() * 0.06)
+    src.connect(bp).connect(g).connect(ac.destination)
+    src.start(t)
+    src.stop(t + 0.14)
+  }
+}
+
 /** 합격 */
 export function fanfare(): void {
   tone(523, 0.14) // 도

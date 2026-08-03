@@ -326,8 +326,15 @@ export const examScreen =
       const seconds = Math.round((Date.now() - startedAt) / 1000)
       const passed = score >= spec.pass
       progress.recordExam({ score, total: spec.total, passed, seconds, at: Date.now() }, spec.id)
-      // 제출음이 끝난 뒤에 결과음
-      setTimeout(() => (passed ? sfx.fanfare() : sfx.soft()), 260)
+      // 제출음이 끝난 뒤에 결과음 — 합격이면 팡파레가 끝나는 지점부터 박수가 이어진다
+      setTimeout(() => {
+        if (passed) {
+          sfx.fanfare()
+          sfx.applause(0.68)
+        } else {
+          sfx.soft()
+        }
+      }, 260)
 
       const next = LADDER[LADDER.indexOf(grade) + 1]
       const notes = el(
