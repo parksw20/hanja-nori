@@ -77,15 +77,21 @@ export function resultCard(opts: {
  * 화면을 덮고 → 크게 나타났다가 → 카드 크기로 줄어들고 → 확인을 눌러야 넘어가게 한다.
  */
 export function prizeModal(opts: {
+  /** 한 글자면 카드, 여러 글자면 낱말 */
   char: string
   title: string
   lines: string[]
   onConfirm: () => void
+  /** 외침 — 기본 '짜잔!' */
+  tada?: string
 }): HTMLElement {
-  const card = el('div', { class: 'hn-modal__card' }, [el('span', { class: 'hn-modal__char', text: opts.char })])
+  const len = [...opts.char].length
+  const card = el('div', { class: `hn-modal__card ${len > 1 ? 'hn-modal__card--wide' : ''}` }, [
+    el('span', { class: `hn-modal__char hn-modal__char--n${Math.min(len, 4)}`, text: opts.char }),
+  ])
 
   const box = el('div', { class: 'hn-modal__box' }, [
-    el('div', { class: 'hn-modal__tada', text: '짜잔!' }),
+    el('div', { class: 'hn-modal__tada', text: opts.tada ?? '짜잔!' }),
     card,
     el('h2', { class: 'hn-modal__title', text: opts.title }),
     ...opts.lines.map((t) => el('p', { class: 'hn-modal__line', text: t })),

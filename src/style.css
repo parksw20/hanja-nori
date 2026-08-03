@@ -213,11 +213,24 @@ body {
   100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 
+.hn-modal__card--wide {
+  width: auto;
+  min-width: 180px;
+  padding: 0 18px;
+  height: 150px;
+}
+
 .hn-modal__char {
   font-size: 5rem;
   line-height: 1;
   color: var(--hn-accent);
+  white-space: nowrap;
 }
+
+/* 낱말은 글자 수만큼 작아져야 카드 안에 들어간다 */
+.hn-modal__char--n2 { font-size: 3.6rem; }
+.hn-modal__char--n3 { font-size: 2.9rem; }
+.hn-modal__char--n4 { font-size: 2.4rem; }
 
 .hn-modal__title {
   margin: 6px 0 0;
@@ -1061,6 +1074,135 @@ body {
   border-radius: 999px;
   padding: 6px 12px;
   font-size: 0.9rem;
+}
+
+/* ── 낱말 만들기 (카드를 한 글자씩 끼우기) ─────────────── */
+
+.wbb-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.wbb-target {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--hn-good);
+}
+
+.wbb-slots {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.wbb-slot {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 118px;
+  border-radius: 14px;
+  border: 3px dashed var(--hn-line);
+  background: var(--hn-bg-2);
+  color: var(--hn-ink);
+  padding: 0;
+  cursor: default;
+}
+
+/* 지금 채울 칸 — 어디에 넣어야 하는지 한눈에 */
+.wbb-slot--next {
+  border-color: var(--hn-accent);
+  border-style: solid;
+  box-shadow: 0 0 0 4px rgba(255, 209, 102, 0.2);
+  animation: wbb-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes wbb-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 209, 102, 0.18); }
+  50% { box-shadow: 0 0 0 10px rgba(255, 209, 102, 0.06); }
+}
+
+.wbb-slot--filled {
+  border-style: solid;
+  border-color: var(--hn-good);
+  background: #1e3d34;
+  animation: wbb-drop 0.34s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+
+@keyframes wbb-drop {
+  0% { transform: translateY(-26px) scale(1.25); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* 마지막에 넣은 칸은 눌러서 되돌릴 수 있다 */
+.wbb-slot--undo {
+  cursor: pointer;
+}
+
+.wbb-slot__char {
+  font-size: 3.4rem;
+}
+
+.wbb-guide {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--hn-ink-dim);
+  text-align: center;
+}
+
+.wbb-handtitle {
+  margin: 4px 0 0;
+  font-size: 1.05rem;
+  color: var(--hn-ink-dim);
+}
+
+.wbb-hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.wbb-card {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 100px;
+  border-radius: 12px;
+  border: 1px solid var(--hn-line);
+  background: linear-gradient(160deg, #2b3661, var(--hn-bg-2));
+  color: var(--hn-ink);
+  cursor: pointer;
+  padding: 0;
+}
+
+.wbb-card__char {
+  font-size: 2.4rem;
+}
+
+.wbb-card__n {
+  font-size: 0.78rem;
+  color: var(--hn-ink-dim);
+}
+
+.wbb-card--wrong {
+  border-color: var(--hn-bad);
+  animation: wbb-shake 0.4s ease;
+}
+
+@keyframes wbb-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-7px); }
+  75% { transform: translateX(7px); }
+}
+
+.wbb-empty {
+  margin: 0;
+  color: var(--hn-ink-dim);
 }
 
 .wb-near {
