@@ -137,6 +137,7 @@ const home: Screen = (root, nav) => {
           el('span', { class: 'gd-head__grade', text: `${spec.name} · ${spec.chars}자` }),
         ]),
         menu,
+        voicePicker(),
         el('footer', { class: 'gd-foot' }, [
           el('button', {
             class: 'gd-reset',
@@ -177,6 +178,33 @@ const home: Screen = (root, nav) => {
       ]),
     ]),
   )
+}
+
+/**
+ * 목소리 고르기. 기기에 한국어 음성이 둘 이상 있을 때만 보인다.
+ * 윈도우 크롬의 기본 음성(Heami)은 딱딱한데, Edge에는 사람 같은 신경망 음성이 있다.
+ */
+function voicePicker(): HTMLElement {
+  const voices = tts.koreanVoices()
+  if (voices.length <= 1) {
+    return el('p', {
+      class: 'gd-voice gd-voice--single',
+      text: voices.length ? `🔊 ${voices[0].name}` : '🔇 이 기기에 한국어 음성이 없어요',
+    })
+  }
+
+  const select = el('select', { class: 'gd-voice__select' })
+  for (const v of voices) {
+    const opt = el('option', { value: v.name, text: v.name })
+    if (v.name === tts.voiceName()) opt.selected = true
+    select.append(opt)
+  }
+  select.addEventListener('change', () => {
+    tts.useVoice(select.value)
+    tts.speak('가르칠 교')
+  })
+
+  return el('label', { class: 'gd-voice' }, [el('span', { class: 'gd-voice__label', text: '🔊 목소리' }), select])
 }
 
 function legendItem(icon: string, label: string): HTMLElement {

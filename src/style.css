@@ -330,8 +330,8 @@ body {
   border: 1px solid var(--hn-line);
   background: var(--hn-bg-2);
   color: var(--hn-ink-dim);
-  /* 메인화면 한자는 따로 더 키운다 (1.05rem → 1.5rem, 약 +5pt) */
-  font-size: 1.5rem;
+  /* 메인화면 한자는 따로 더 키운다 (처음 1.05rem → 1.5rem → 1.75rem, 누적 약 +8pt) */
+  font-size: 1.75rem;
   cursor: pointer;
   padding: 0;
   display: grid;
@@ -341,8 +341,10 @@ body {
 .gd-tile__growth {
   position: absolute;
   right: 1px;
-  bottom: 0;
-  font-size: 0.62rem;
+  bottom: -1px;
+  /* 성장 단계는 한눈에 보여야 한다 — 0.62rem에서 두 배 */
+  font-size: 1.24rem;
+  line-height: 1;
 }
 
 .gd-tile--sprout { color: var(--hn-ink); border-color: #48628c; }
@@ -464,6 +466,32 @@ body {
   font-size: 0.92rem;
   color: var(--hn-accent);
   font-variant-numeric: tabular-nums;
+}
+
+.gd-voice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--hn-ink-dim);
+}
+
+.gd-voice--single {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  word-break: break-all;
+}
+
+.gd-voice__select {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+  color: var(--hn-ink);
+  font-size: 0.85rem;
 }
 
 .gd-foot {
@@ -647,7 +675,16 @@ body {
   font-weight: 700;
 }
 
+/* 힌트는 글씨판 위에 겹쳐 그린다. pointer-events:none 이라 보여 주는 동안에도 그릴 수 있다. */
+.ps-hintlayer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
 .ps-stage {
+  position: relative;
   width: 260px;
   height: 260px;
   border-radius: var(--hn-radius);

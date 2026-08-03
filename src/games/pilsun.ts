@@ -42,15 +42,80 @@ export const pilsunGame =
     const prompt = el('p', { class: 'ps-prompt' })
     const counter = el('span', { class: 'ps-counter' })
     const stage = el('div', { class: 'ps-stage' })
+    /**
+     * 힌트는 hanzi-writer에게 맡기지 않는다.
+     *
+     * `animateCharacter()`는 내부에서 `cancelQuiz()`를 부르고, `highlightStroke()`도 실측해 보니
+     * 퀴즈 입력이 죽었다 — 힌트를 한 번 누르면 그 뒤로 아무리 그어도 반응하지 않았다.
+     * 그래서 획 데이터를 **우리 SVG에 직접** 그린다. `pointer-events: none` 오버레이라
+     * 보여 주는 동안에도 아이가 그대로 그을 수 있고, 퀴즈는 아예 건드리지 않는다.
+     *
+     * 좌표계는 writer가 쓰는 g의 transform을 그대로 복사해 맞춘다(자체 계산하면 어긋난다).
+     */
+    const HINT_STEP = 800 // 획 사이 간격(ms). hanzi-writer 기본 1000ms보다 20% 빠르다.
+    const HINT_FADE = 260
+    let hintTimers: number[] = []
+
+    // 화면에 실제로 붙어 있는 글씨판을 문서에서 찾는다.
+    // 클로저의 stage가 이전 판의 것일 수 있어(판을 갈면 새 화면이 마운트된다) 눈에 보이는 쪽을 기준으로 삼는다.
+    const liveStage = () => document.querySelector<HTMLElement>('.ps-stage') ?? stage
+
+    function clearHint() {
+      for (const t of hintTimers) clearTimeout(t)
+      hintTimers = []
+      document.querySelector('.ps-hintlayer')?.remove()
+    }
+
+    function showHint(char: string) {
+      clearHint()
+      const host = liveStage()
+      const src = host.querySelector('svg:not(.ps-hintlayer) g[transform]')
+      if (!src) return
+
+      const NS = 'http://www.w3.org/2000/svg'
+      const svg = document.createElementNS(NS, 'svg')
+      svg.setAttribute('class', 'ps-hintlayer')
+      svg.setAttribute('width', '260')
+      svg.setAttribute('height', '260')
+      const g = document.createElementNS(NS, 'g')
+      g.setAttribute('transform', src.getAttribute('transform')!)
+      svg.append(g)
+      host.append(svg)
+
+      const paths = STROKES[char].strokes.map((d) => {
+        const p = document.createElementNS(NS, 'path')
+        p.setAttribute('d', d)
+        p.setAttribute('fill', '#ffd166') // 노란색
+        p.style.opacity = '0'
+        p.style.transition = `opacity ${HINT_FADE}ms ease`
+        g.append(p)
+        return p
+      })
+
+      // 획을 순서대로 하나씩 노랗게 켠다 → 다 보여 준 뒤 통째로 지운다
+      paths.forEach((p, i) => {
+        hintTimers.push(window.setTimeout(() => (p.style.opacity = '1'), i * HINT_STEP))
+      })
+      const total = paths.length * HINT_STEP + HINT_FADE
+      hintTimers.push(
+        window.setTimeout(() => {
+          svg.style.opacity = '0'
+          svg.style.transition = `opacity ${HINT_FADE}ms ease`
+        }, total),
+      )
+      hintTimers.push(window.setTimeout(clearHint, total + HINT_FADE + 50))
+    }
+
     const hintBtn = el('button', {
       class: 'hn-btn ps-hint',
       type: 'button',
       text: '살짝 보여줘',
-      onclick: () => writer?.animateCharacter(),
+      onclick: () => showHint(chars[idx]),
     })
 
     function cleanupWriter() {
       // hanzi-writer는 target 안에 svg를 붙인다. 판을 갈 땐 통째로 비운다.
+      clearHint()
       writer = null
       stage.replaceChildren()
     }
@@ -102,7 +167,9 @@ export const pilsunGame =
         outlineColor: '#3a4468',
         drawingColor: '#ffd166',
         drawingWidth: 26,
+        // 힌트 획은 노란색. 기본 속도(2)보다 20% 빠르게.
         highlightColor: '#ffd166',
+        strokeHighlightSpeed: 2.4,
         charDataLoader: (c: string, onComplete: (d: StrokeData) => void) => onComplete(STROKES[c]),
       })
 
@@ -139,6 +206,7 @@ export const pilsunGame =
 
     return () => {
       disposed = true
+      clearHint()
       cleanupWriter()
     }
   }
