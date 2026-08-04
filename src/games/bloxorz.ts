@@ -16,6 +16,7 @@ import * as cards from '../cards'
 import * as progress from '../progress'
 import * as srs from '../srs'
 import * as tts from '../tts'
+import * as sfx from '../sfx'
 import { wordbookScreen } from '../wordbook'
 import { el, prizeModal, resultCard, toast, topBar, type Screen } from '../ui'
 
@@ -377,6 +378,7 @@ export const bloxorzGame =
       }
 
       // 결과 화면에 슬쩍 끼워 넣으면 카드를 받은 줄 모른다 — 짜잔 하고 덮어서 보여 준다
+      sfx.fanfare()
       tts.speak(hunEumOf(char))
       root.append(
         prizeModal({
@@ -391,11 +393,13 @@ export const bloxorzGame =
     function move(d: Dir) {
       if (done) return
       const nb = roll(block, d)
+      sfx.move()
       if (!isSupported(lv, nb)) {
         // 판 밖으로 떨어졌다 — 처음부터
         falls++
         block = { ...lv.start }
         moves = 0
+        sfx.soft()
         toast(root, '앗, 떨어졌어요!', 'bad')
         view.classList.add('bx-view--fall')
         setTimeout(() => view.classList.remove('bx-view--fall'), 400)
@@ -445,7 +449,10 @@ export const bloxorzGame =
               class: 'hn-btn bx-skip',
               type: 'button',
               text: `깬 단계 다시하기 (1~${unlocked - 1}단계)`,
-              onclick: cycleLevel,
+              onclick: () => {
+                sfx.tap()
+                cycleLevel()
+              },
             })
           : el('p', { class: 'bx-locked', text: '이 단계를 깨야 다음 단계가 열려요' }),
       ]),

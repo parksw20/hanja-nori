@@ -8,6 +8,7 @@ import type { GradeId, Word } from './data/types'
 import { cumulative, wordsUpTo, hunEumOf } from './data/words'
 import * as cards from './cards'
 import * as tts from './tts'
+import * as sfx from './sfx'
 import { el, prizeModal, toast, topAction, topBar, type Screen } from './ui'
 
 /**
@@ -118,11 +119,15 @@ export const buildScreen =
     const hand = el('div', { class: 'wbb-hand' })
     const guide = el('p', { class: 'wbb-guide' })
 
+    let finished = false
     function finish() {
+      if (finished) return
+      finished = true
       if (!cards.completeWord(w.word)) {
         toast(root, '카드가 모자라요', 'bad')
         return
       }
+      sfx.fanfare()
       tts.speak(w.reading)
       root.append(
         prizeModal({
@@ -184,9 +189,11 @@ export const buildScreen =
                 }
                 filled[slot] = char
                 usedNow.set(char, (usedNow.get(char) ?? 0) + 1)
-                tts.speak(hunEumOf(char))
                 render()
-                if (nextSlot() === -1) setTimeout(finish, 450)
+                const last = nextSlot() === -1
+                // 마지막 글자면 그 글자를 **끝까지 말한 뒤** 빠밤 + 낱말 읽기로 넘어간다.
+                // 예전에는 450ms 뒤에 잘라서 "사람 인"을 말하다 말고 "대인"으로 바뀌었다.
+                tts.speak(hunEumOf(char), last ? { onEnd: () => setTimeout(finish, 220) } : {})
               })
               return card
             })
@@ -267,12 +274,22 @@ export const wordbookScreen =
           ? el(
               'div',
               { class: 'wb-hand' },
-              held.map(({ char, n }) =>
-                el('div', { class: 'wb-card wb-card--static', title: `${char} ${hunEumOf(char)} ${n}장` }, [
-                  el('span', { class: 'wb-card__char', text: char }),
-                  el('span', { class: 'wb-card__n', text: `×${n}` }),
-                ]),
-              ),
+              // 누르면 훈음을 읽어 준다 (아직 글씨를 못 읽는 아이도 무슨 카드인지 알 수 있게)
+              held.map(({ char, n }) => {
+                const card = el(
+                  'button',
+                  { class: 'wb-card', type: 'button', title: `${char} ${hunEumOf(char)} ${n}장` },
+                  [
+                    el('span', { class: 'wb-card__char', text: char }),
+                    el('span', { class: 'wb-card__n', text: `×${n}` }),
+                  ],
+                )
+                card.addEventListener('click', () => {
+                  sfx.tap()
+                  tts.speak(hunEumOf(char))
+                })
+                return card
+              }),
             )
           : el('p', { class: 'wb-empty', text: '카드가 없어요.' }),
       ])

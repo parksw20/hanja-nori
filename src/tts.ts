@@ -97,8 +97,12 @@ export function isSupported(): boolean {
  * 읽어 준다. 이전에 읽던 것은 끊는다 — 아이가 타일을 연타하면 소리가 겹쳐 알아들을 수 없다.
  * rate를 조금 낮춘 것은 훈음이 짧아서 빠르면 뭉개지기 때문.
  */
-export function speak(text: string, opts: { rate?: number } = {}): void {
-  if (!isSupported()) return
+export function speak(text: string, opts: { rate?: number; onEnd?: () => void } = {}): void {
+  if (!isSupported()) {
+    // 음성이 없는 기기에서도 뒷일(축하 모달 등)은 이어져야 한다
+    if (opts.onEnd) setTimeout(opts.onEnd, 300)
+    return
+  }
   speechSynthesis.cancel()
   const u = new SpeechSynthesisUtterance(text)
   u.lang = 'ko-KR'
@@ -106,6 +110,21 @@ export function speak(text: string, opts: { rate?: number } = {}): void {
   u.rate = opts.rate ?? 0.9
   // 피치를 올리면 구형 음성은 더 기계처럼 들린다 — 있는 그대로 둔다
   u.pitch = 1
+
+  if (opts.onEnd) {
+    let done = false
+    const finish = () => {
+      if (done) return
+      done = true
+      opts.onEnd!()
+    }
+    u.addEventListener('end', finish)
+    u.addEventListener('error', finish)
+    // 음성이 아예 안 울리는 경우(권한·버그)에도 멈추지 않게 안전장치.
+    // 한글 한 글자에 대략 0.25초 + 여유.
+    setTimeout(finish, 900 + text.length * 260)
+  }
+
   speechSynthesis.speak(u)
 }
 

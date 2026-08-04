@@ -128,7 +128,17 @@ const home: Screen = (root, nav) => {
     menuButton('☄️', '독음 요격', '낱말을 소리내어 읽어요', 'dokeum', () => nav(dokeumGame(grade, home))),
     menuButton('🖌️', '필순 따라쓰기', '획을 순서대로 그어요', 'pilsun', () => nav(pilsunGame(grade, home))),
     menuButton('🧊', '블록 굴리기', '깨면 한자 카드를 줘요', 'bloxorz', () => nav(bloxorzGame(grade, home))),
-    el('button', { class: 'gd-item gd-item--exam', type: 'button', onclick: () => nav(examScreen(grade, home)) }, [
+    el(
+      'button',
+      {
+        class: 'gd-item gd-item--exam',
+        type: 'button',
+        onclick: () => {
+          sfx.submit()
+          nav(examScreen(grade, home))
+        },
+      },
+      [
       el('span', { class: 'gd-item__emoji', text: progress.hasCertificate(grade) ? '🎖️' : '📝' }),
       el('span', { class: 'gd-item__body' }, [
         el('span', { class: 'gd-item__name', text: `${spec.name} 모의고사` }),
@@ -245,7 +255,14 @@ function wordbookButton(grade: GradeId, nav: (s: Screen) => void): HTMLElement {
   const made = cards.completedWords().length
   return el(
     'button',
-    { class: 'gd-item gd-item--book', type: 'button', onclick: () => nav(wordbookScreen(grade, home)) },
+    {
+      class: 'gd-item gd-item--book',
+      type: 'button',
+      onclick: () => {
+        sfx.tap()
+        nav(wordbookScreen(grade, home))
+      },
+    },
     [
       el('span', { class: 'gd-item__emoji', text: '📒' }),
       el('span', { class: 'gd-item__body' }, [
@@ -303,7 +320,17 @@ function stat(label: string, value: string): HTMLElement {
 
 function menuButton(emoji: string, name: string, desc: string, gameId: string, onClick: () => void): HTMLElement {
   const best = progress.bestOf(gameId)
-  return el('button', { class: 'gd-item', type: 'button', onclick: onClick }, [
+  return el(
+    'button',
+    {
+      class: 'gd-item',
+      type: 'button',
+      onclick: () => {
+        sfx.tap()
+        onClick()
+      },
+    },
+    [
     el('span', { class: 'gd-item__emoji', text: emoji }),
     el('span', { class: 'gd-item__body' }, [
       el('span', { class: 'gd-item__name', text: name }),
