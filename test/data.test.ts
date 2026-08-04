@@ -10,7 +10,22 @@ import { ALL_HANJA, ALL_WORDS } from '../src/data/words'
 import { EXAMS, buildQuestions } from '../src/exam'
 import { LEVELS, parseLevel, solve, rewardChar } from '../src/games/bloxorz'
 import * as cards from '../src/cards'
-import strokes from '../src/data/strokes.json'
+import { readFileSync } from 'node:fs'
+import { LADDER as GRADE_ORDER } from '../src/data/words'
+import * as strokeStore from '../src/strokes'
+
+// 획순은 급수별 파일로 나뉘어 있다 (npm run data가 굽는다). 테스트에서는 전부 합쳐서 본다.
+const strokes: Record<string, { strokes: string[]; medians: number[][][] }> = {}
+for (const g of GRADE_ORDER) {
+  const path = new URL(`../src/data/strokes-${g}.json`, import.meta.url)
+  try {
+    Object.assign(strokes, JSON.parse(readFileSync(path, 'utf8')))
+  } catch {
+    // 배정한자가 없는 급수는 파일도 없다
+  }
+}
+// 앱은 브라우저에서 급수별로 나눠 받는다 — node에는 그 통로가 없으니 직접 넣어 준다
+strokeStore.preload(strokes)
 
 let failed = 0
 function check(name: string, ok: boolean, detail = '') {

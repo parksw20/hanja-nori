@@ -4,20 +4,18 @@
  * hanzi-writer의 강조는 애니메이션이라 정지 화면으로 남지 않는다 → 여기서 직접 그린다.
  *
  * 좌표계는 Make Me a Hanzi 규약: 1024×1024, y축이 뒤집혀 있어 translate(0,900) scale(1,-1).
+ *
+ * 데이터는 급수별로 나눠 받으므로, 이 함수를 쓰기 전에 strokes.loadUpTo(급수)를 먼저 부를 것.
  */
-import strokesJson from './data/strokes.json'
-import type { StrokeData } from './data/types'
+import * as strokes from './strokes'
 
-const STROKES = strokesJson as Record<string, StrokeData>
 const NS = 'http://www.w3.org/2000/svg'
 
-export function strokeCount(char: string): number {
-  return STROKES[char]?.strokes.length ?? 0
-}
+export const strokeCount = strokes.strokeCount
 
 export function renderCharSvg(char: string, opts: { size?: number; highlight?: number } = {}): SVGSVGElement {
   const size = opts.size ?? 200
-  const data = STROKES[char]
+  const data = strokes.get(char)
   const svg = document.createElementNS(NS, 'svg')
   svg.setAttribute('viewBox', '0 0 1024 1024')
   svg.setAttribute('width', String(size))

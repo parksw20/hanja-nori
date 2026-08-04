@@ -19,7 +19,8 @@ import * as srs from './srs'
 import * as progress from './progress'
 import * as sfx from './sfx'
 import { renderCharSvg, strokeCount } from './hanjaSvg'
-import { el, progressBar, resultCard, topBar, type Screen } from './ui'
+import * as strokes from './strokes'
+import { el, loadingBox, progressBar, resultCard, topBar, type Screen } from './ui'
 
 export interface ExamSpec {
   id: GradeId
@@ -291,10 +292,26 @@ export const examScreen =
   (grade: GradeId, home: Screen): Screen =>
   (root, nav) => {
     const spec = EXAMS[grade]
+    let ticking = 0
+    let disposed = false
+
+    // 필순 문제를 만들려면 획순 데이터가 있어야 한다 — 급수별로 나눠 받으므로 먼저 기다린다
+    root.append(topBar(`${spec.name} 모의고사`, () => nav(home)), loadingBox('시험 준비 중…'))
+    void strokes.loadUpTo(grade).then(() => {
+      if (disposed) return
+      root.replaceChildren()
+      start()
+    })
+
+    return () => {
+      disposed = true
+      clearInterval(ticking)
+    }
+
+    function start() {
     const questions = buildQuestions(spec)
     const picked: (string | null)[] = new Array(questions.length).fill(null)
     let idx = 0
-    let ticking = 0
     const startedAt = Date.now()
     const deadline = startedAt + spec.minutes * 60 * 1000
     let submitted = false
@@ -468,6 +485,5 @@ export const examScreen =
       el('div', { class: 'ex-wrap' }, [el('div', { class: 'ex-hud' }, [counter, clock]), bar.node, stage]),
     )
     render()
-
-    return () => clearInterval(ticking)
+    }
   }

@@ -5,14 +5,7 @@ export default defineConfig({
   // GitHub Pages는 /<저장소이름>/ 아래에 서비스된다. 상대 경로로 두면
   // Pages·로컬 preview·파일 열기가 전부 같은 산출물로 동작한다.
   base: './',
-  build: {
-    rollupOptions: {
-      output: {
-        // 획순 데이터(300자, 약 680KB)는 거의 안 바뀐다 — 따로 떼서 캐시가 살아 있게
-        manualChunks: (id) => (id.includes('strokes.json') ? 'strokes' : undefined),
-      },
-    },
-  },
+  // 획순은 src/strokes.ts가 import.meta.glob으로 급수별 청크를 만든다 (수동 분할 불필요)
   server: {
     host: 'localhost',
     port: 5300,

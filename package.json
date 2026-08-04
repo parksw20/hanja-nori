@@ -5,7 +5,7 @@
   "type": "module",
   "description": "한자놀이 — 어문회 전국한자능력검정시험 급수 기준 한자 학습 게임 (8급~6급)",
   "scripts": {
-    "data": "node scripts/build-strokes.mjs",
+    "data": "tsx scripts/build-strokes.ts",
     "predev": "npm run data",
     "dev": "vite",
     "prebuild": "npm run data",

@@ -7,19 +7,18 @@
  * → scripts/build-strokes.mjs, 라이선스는 NOTICE.md 참고.
  */
 import HanziWriter from 'hanzi-writer'
-import strokesJson from '../data/strokes.json'
+import * as strokes from '../strokes'
 import { cumulative, hunEumOf } from '../data/words'
 import { NO_PILSUN } from '../data/grades'
 import type { GradeId, StrokeData } from '../data/types'
 import * as srs from '../srs'
 import * as progress from '../progress'
 import * as tts from '../tts'
-import { el, resultCard, toast, topBar, type Screen } from '../ui'
+import { el, loadingBox, resultCard, toast, topBar, type Screen } from '../ui'
 
 const GAME_ID = 'pilsun'
 const ROUND = 5
 
-const STROKES = strokesJson as Record<string, StrokeData>
 
 export const pilsunGame =
   (grade: GradeId, home: Screen): Screen =>
@@ -75,7 +74,7 @@ export const pilsunGame =
       if (!src) return
 
       // 이미 그은 획은 다시 보여 줄 필요가 없다 — **다음에 그을 획부터** 알려 준다
-      const remaining = STROKES[char].strokes.slice(drawnCount)
+      const remaining = (strokes.get(char)?.strokes ?? []).slice(drawnCount)
       if (remaining.length === 0) return
 
       const NS = 'http://www.w3.org/2000/svg'
@@ -157,7 +156,7 @@ export const pilsunGame =
 
       const char = chars[idx]
       const he = hunEumOf(char)
-      const strokeCount = STROKES[char].strokes.length
+      const strokeCount = strokes.strokeCount(char)
       let mistakes = 0
 
       prompt.textContent = `「${he}」 — ${strokeCount}획`
@@ -180,7 +179,7 @@ export const pilsunGame =
         // 힌트 획은 노란색. 기본 속도(2)보다 20% 빠르게.
         highlightColor: '#ffd166',
         strokeHighlightSpeed: 2.4,
-        charDataLoader: (c: string, onComplete: (d: StrokeData) => void) => onComplete(STROKES[c]),
+        charDataLoader: (c: string, onComplete: (d: StrokeData) => void) => onComplete(strokes.get(c)!),
       })
 
       writer.quiz({
@@ -207,18 +206,21 @@ export const pilsunGame =
       })
     }
 
-    root.append(
-      topBar('필순 따라쓰기', () => nav(home)),
-      el('div', { class: 'ps-wrap' }, [
+    const wrap = el('div', { class: 'ps-wrap' }, [loadingBox('획순 불러오는 중…')])
+    root.append(topBar('필순 따라쓰기', () => nav(home)), wrap)
+
+    // 획순은 급수별로 나눠 받는다 — 다 받은 뒤에 첫 글자를 띄운다
+    void strokes.loadUpTo(grade).then(() => {
+      if (disposed) return
+      wrap.replaceChildren(
         counter,
         prompt,
         stage,
         el('p', { class: 'ps-guide', text: '회색 획 위를 순서대로 그어 주세요' }),
         hintBtn,
-      ]),
-    )
-
-    step()
+      )
+      step()
+    })
 
     return () => {
       disposed = true

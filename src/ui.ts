@@ -122,6 +122,11 @@ export function prizeModal(opts: {
   return overlay
 }
 
+/** 획순처럼 나눠 받는 데이터를 기다리는 동안 */
+export function loadingBox(text = '불러오는 중…'): HTMLElement {
+  return el('div', { class: 'hn-loading' }, [el('span', { class: 'hn-loading__dot' }), el('span', { text })])
+}
+
 /** 짧은 칭찬/오답 알림 */
 export function toast(root: HTMLElement, text: string, kind: 'good' | 'bad' = 'good'): void {
   const t = el('div', { class: `hn-toast hn-toast--${kind}`, text })

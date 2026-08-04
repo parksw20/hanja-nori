@@ -260,6 +260,29 @@ body {
   min-width: 140px;
 }
 
+.hn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 16px;
+  color: var(--hn-ink-dim);
+  font-size: 1.05rem;
+}
+
+.hn-loading__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--hn-accent);
+  animation: hn-loading-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes hn-loading-pulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
 .hn-toast {
   position: fixed;
   left: 50%;
