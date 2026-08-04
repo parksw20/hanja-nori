@@ -1257,25 +1257,93 @@ body {
 
 .wb-near {
   display: grid;
-  gap: 6px;
+  gap: 10px;
 }
 
 .wb-near__row {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  gap: 10px;
-  align-items: baseline;
+  display: flex;
+  align-items: center;
+  /* 네 글자 낱말은 좁은 화면에서 한 줄에 안 들어간다 → 설명이 아랫줄로 내려가게 */
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-bg-2);
   color: var(--hn-ink-dim);
+  cursor: pointer;
+  text-align: left;
 }
 
-.wb-near__word {
-  font-size: 1.3rem;
+.wb-near__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* 낱말을 이루는 글자 한 장 */
+.wb-mini {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  width: 62px;
+  padding: 7px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--hn-line);
+}
+
+.wb-mini--have {
+  background: #1e3d34;
+  border-color: var(--hn-good);
   color: var(--hn-ink);
 }
 
+/* 아직 없는 글자 — 테두리를 끊고 흐리게 */
+.wb-mini--lack {
+  border-style: dashed;
+  border-color: var(--hn-bad);
+  background: transparent;
+  opacity: 0.6;
+}
+
+.wb-mini__char {
+  font-size: 1.7rem;
+  line-height: 1.1;
+}
+
+.wb-mini__he {
+  font-size: 0.62rem;
+  color: var(--hn-ink-dim);
+  white-space: nowrap;
+}
+
+.wb-near__info {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+  min-width: 150px;
+}
+
+.wb-near__reading {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--hn-ink);
+}
+
+.wb-near__meaning {
+  font-size: 0.85rem;
+  word-break: keep-all;
+}
+
 .wb-near__need {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--hn-bad);
+}
+
+.wb-near__speak {
+  font-size: 1.3rem;
+  flex-shrink: 0;
 }
 
 .wb-hand {

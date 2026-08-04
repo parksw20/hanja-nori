@@ -256,13 +256,42 @@ export const wordbookScreen =
             el(
               'div',
               { class: 'wb-near' },
-              nearly.map((n) =>
-                el('div', { class: 'wb-near__row' }, [
-                  el('span', { class: 'wb-near__word', text: n.word.word }),
-                  el('span', { class: 'wb-near__reading', text: n.word.reading }),
-                  el('span', { class: 'wb-near__need', text: `${n.missing.join(' ')} 필요` }),
-                ]),
-              ),
+              // 낱말을 카드로 늘어놓는다 — 가진 글자와 없는 글자가 한눈에 보이고,
+              // 누르면 "사람 인, 사이 간"처럼 **구성 훈음**을 읽어 준다.
+              // 낱말이 어떤 글자로 이루어지는지가 곧 한자 공부다.
+              nearly.map((n) => {
+                const chars = [...n.word.word]
+                // 부족한 장수를 글자별로 센다 (國이 2장 필요한데 1장뿐인 경우까지)
+                const lack = new Map<string, number>()
+                for (const c of n.missing) lack.set(c, (lack.get(c) ?? 0) + 1)
+
+                const row = el('button', { class: 'wb-near__row', type: 'button' }, [
+                  el(
+                    'span',
+                    { class: 'wb-near__cards' },
+                    chars.map((c) => {
+                      const missing = (lack.get(c) ?? 0) > 0
+                      if (missing) lack.set(c, (lack.get(c) ?? 1) - 1)
+                      return el('span', { class: `wb-mini ${missing ? 'wb-mini--lack' : 'wb-mini--have'}` }, [
+                        el('span', { class: 'wb-mini__char', text: c }),
+                        el('span', { class: 'wb-mini__he', text: hunEumOf(c) }),
+                      ])
+                    }),
+                  ),
+                  el('span', { class: 'wb-near__info' }, [
+                    el('span', { class: 'wb-near__reading', text: n.word.reading }),
+                    el('span', { class: 'wb-near__meaning', text: n.word.meaning }),
+                    el('span', { class: 'wb-near__need', text: `${n.missing.join(' ')} 더 필요해요` }),
+                  ]),
+                  el('span', { class: 'wb-near__speak', text: '🔊' }),
+                ])
+
+                row.addEventListener('click', () => {
+                  sfx.tap()
+                  tts.speak(chars.map(hunEumOf).join(', '))
+                })
+                return row
+              }),
             ),
           ])
         : null
