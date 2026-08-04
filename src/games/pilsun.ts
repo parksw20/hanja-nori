@@ -41,6 +41,16 @@ export const pilsunGame =
     const prompt = el('p', { class: 'ps-prompt' })
     const counter = el('span', { class: 'ps-counter' })
     const stage = el('div', { class: 'ps-stage' })
+
+    /**
+     * 글씨판 크기. 260px에서 시작했는데 아이가 손으로 그리기엔 작았다 → 1.8배(468px).
+     * 좁은 화면에서는 들어가는 만큼만 쓴다. 획 굵기·여백도 이 값에 비례해 커진다.
+     */
+    const BASE = 260
+    const STAGE = Math.max(240, Math.min(468, (root.clientWidth || 360) - 24))
+    const scale = STAGE / BASE
+    stage.style.width = `${STAGE}px`
+    stage.style.height = `${STAGE}px`
     /**
      * 힌트는 hanzi-writer에게 맡기지 않는다.
      *
@@ -80,8 +90,8 @@ export const pilsunGame =
       const NS = 'http://www.w3.org/2000/svg'
       const svg = document.createElementNS(NS, 'svg')
       svg.setAttribute('class', 'ps-hintlayer')
-      svg.setAttribute('width', '260')
-      svg.setAttribute('height', '260')
+      svg.setAttribute('width', String(STAGE))
+      svg.setAttribute('height', String(STAGE))
       const g = document.createElementNS(NS, 'g')
       g.setAttribute('transform', src.getAttribute('transform')!)
       svg.append(g)
@@ -166,16 +176,16 @@ export const pilsunGame =
       cleanupWriter()
 
       writer = HanziWriter.create(stage, char, {
-        width: 260,
-        height: 260,
-        padding: 12,
+        width: STAGE,
+        height: STAGE,
+        padding: Math.round(12 * scale),
         showCharacter: false,
         showOutline: true,
         strokeColor: '#7fd4ff',
         // 안내선은 반투명이어야 아래 깔린 노란 힌트가 비쳐 보인다
         outlineColor: 'rgba(120, 140, 200, 0.45)',
         drawingColor: '#7fd4ff',
-        drawingWidth: 26,
+        drawingWidth: Math.round(26 * scale),
         // 힌트 획은 노란색. 기본 속도(2)보다 20% 빠르게.
         highlightColor: '#ffd166',
         strokeHighlightSpeed: 2.4,

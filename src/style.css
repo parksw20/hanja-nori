@@ -882,16 +882,16 @@ body {
   pointer-events: none;
 }
 
+/* 크기는 JS가 정한다(화면 폭에 맞춰 최대 468px) — 여기서는 비율로만 그린다 */
 .ps-stage {
   position: relative;
-  width: 260px;
-  height: 260px;
   border-radius: var(--hn-radius);
   border: 1px solid var(--hn-line);
   background: var(--hn-bg-2);
   background-image: linear-gradient(var(--hn-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--hn-line) 1px, transparent 1px);
-  background-size: 130px 130px;
+  /* 판이 커져도 같은 3×3 안내선이 되도록 비율로 */
+  background-size: 50% 50%;
   background-position: center;
   touch-action: none;
 }
