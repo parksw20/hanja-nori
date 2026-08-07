@@ -646,6 +646,96 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* ── 놀이 방법(매뉴얼) ─────────────────────────────────── */
+
+.gd-manual {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #4f7cc4;
+  background: linear-gradient(135deg, #1e2b45, var(--hn-card));
+  color: var(--hn-ink);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mn-wrap {
+  display: grid;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.mn-sec {
+  padding: 14px 16px;
+  border-radius: var(--hn-radius);
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+}
+
+.mn-sec__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.mn-sec__icon {
+  font-size: 1.5rem;
+}
+
+.mn-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.mn-item {
+  color: var(--hn-ink-dim);
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.mn-tablewrap {
+  overflow-x: auto;
+}
+
+.mn-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+.mn-cell {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--hn-line);
+  text-align: right;
+  color: var(--hn-ink-dim);
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.mn-table th.mn-cell {
+  color: var(--hn-accent);
+  text-align: right;
+}
+
+.mn-cell--name {
+  text-align: left;
+  color: var(--hn-ink);
+  font-weight: 700;
+}
+
+.mn-foot {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--hn-ink-dim);
+}
+
 .gd-sound {
   padding: 8px 12px;
   border-radius: 10px;

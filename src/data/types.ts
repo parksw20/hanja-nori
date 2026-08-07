@@ -1,16 +1,5 @@
 /** 급수 식별자. 8급 → '8', 7급II → '7II' 처럼 쓴다. */
-export type GradeId = '8' | '7II' | '7' | '6II' | '6' | '5II' | '5'
-
-/** 급수 이름 표기 (화면·오류 메시지용) */
-export const GRADE_NAME: Readonly<Record<GradeId, string>> = {
-  '8': '8급',
-  '7II': '7급II',
-  '7': '7급',
-  '6II': '6급II',
-  '6': '6급',
-  '5II': '5급II',
-  '5': '5급',
-}
+export type GradeId = '8' | '7II' | '7' | '6II' | '6' | '5II' | '5' | '4II' | '4'
 
 /** 배정한자 한 글자. 획수·부수처럼 데이터에서 계산 가능한 값은 여기 손으로 적지 않는다. */
 export interface Hanja {
@@ -24,6 +13,11 @@ export interface Hanja {
   grade: GradeId
   /** 두 번째 훈음이 있으면 (예: 金 쇠 금 / 성 김) */
   alt?: { hun: string; eum: string }
+  /**
+   * 장단음 — 4급부터 출제 유형에 들어온다.
+   * 'long' 길게, 'both' 경우에 따라, 없으면 짧게.
+   */
+  tone?: 'long' | 'both'
 }
 
 /** 한자어(낱말). 독음 문제와 한자쓰기 문제의 재료. */

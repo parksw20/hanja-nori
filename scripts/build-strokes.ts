@@ -11,7 +11,7 @@
  * 실행: npm run data
  * 재실행 조건: 배정한자 목록이 바뀌었을 때.
  */
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { LADDER, NEW_BY_GRADE } from '../src/data/words'
@@ -24,6 +24,34 @@ const OUT = join(ROOT, 'src', 'data')
 interface Stroke {
   strokes: string[]
   medians: number[][][]
+}
+
+/**
+ * 부수(部首)는 4급II부터 출제 유형에 들어온다. 획순과 같은 출처(Make Me a Hanzi)의
+ * dictionary.txt에 글자마다 부수가 들어 있어 그걸 받아 배정한자분만 추려 굽는다.
+ * 한 번 받으면 node_modules/.cache에 두고 다시 쓴다(빌드마다 8MB를 받지 않게).
+ */
+const CACHE = join(ROOT, 'node_modules', '.cache', 'makemeahanzi-dictionary.txt')
+
+async function radicalMap(): Promise<Record<string, string>> {
+  let text: string
+  if (existsSync(CACHE)) {
+    text = readFileSync(CACHE, 'utf8')
+  } else {
+    const url = 'https://raw.githubusercontent.com/skishore/makemeahanzi/master/dictionary.txt'
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`부수 데이터를 못 받았다: ${res.status}`)
+    text = await res.text()
+    mkdirSync(dirname(CACHE), { recursive: true })
+    writeFileSync(CACHE, text, 'utf8')
+  }
+  const map: Record<string, string> = {}
+  for (const line of text.split('\n')) {
+    if (!line.trim()) continue
+    const j = JSON.parse(line) as { character: string; radical?: string }
+    if (j.radical) map[j.character] = j.radical
+  }
+  return map
 }
 
 const missing: string[] = []
@@ -60,11 +88,23 @@ for (const grade of LADDER) {
   console.log(`  strokes-${grade}.json  ${chars.length}자  ${(Buffer.byteLength(json) / 1024).toFixed(0)}KB`)
 }
 
-if (missing.length) {
-  throw new Error(
-    `획순 데이터 없는 글자: ${missing.join(' ')} — grades.ts의 STROKE_VARIANT에 대체 자형을 넣거나 필순에서 빼야 한다`,
-  )
+// 획순이 없는 글자는 필순에서 자동으로 빠진다 (급수가 올라갈수록 몇 자씩 나온다)
+writeFileSync(join(OUT, 'no-strokes.json'), JSON.stringify(missing), 'utf8')
+
+// ── 부수 ────────────────────────────────────────────────────
+const radicals = await radicalMap()
+const outRad: Record<string, string> = {}
+const noRadical: string[] = []
+for (const grade of LADDER) {
+  for (const h of NEW_BY_GRADE[grade]) {
+    const r = radicals[h.char] ?? radicals[STROKE_VARIANT[h.char] ?? '']
+    if (r) outRad[h.char] = r
+    else noRadical.push(h.char)
+  }
 }
+writeFileSync(join(OUT, 'radicals.json'), JSON.stringify(outRad), 'utf8')
 
 console.log(`총 ${totalChars}자, ${(totalBytes / 1024).toFixed(0)}KB (급수별 분할)`)
 if (substituted.length) console.log(`  대체 자형 사용(필순 문제에서 제외됨): ${substituted.join(' ')}`)
+if (missing.length) console.log(`  획순 없음(필순에서 제외됨) ${missing.length}자: ${missing.join(' ')}`)
+console.log(`  부수: ${Object.keys(outRad).length}자${noRadical.length ? ` (없는 글자 ${noRadical.length}자: ${noRadical.join(' ')})` : ''}`)

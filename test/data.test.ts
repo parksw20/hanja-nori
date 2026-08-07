@@ -12,6 +12,8 @@ import {
   HANJA_6,
   HANJA_5II,
   HANJA_5,
+  HANJA_4II,
+  HANJA_4,
   STROKE_VARIANT,
   NO_PILSUN,
 } from '../src/data/grades'
@@ -74,6 +76,8 @@ const LADDER = [
   { id: '6', list: HANJA_6, fresh: 75, total: 300 },
   { id: '5II', list: HANJA_5II, fresh: 100, total: 400 },
   { id: '5', list: HANJA_5, fresh: 100, total: 500 },
+  { id: '4II', list: HANJA_4II, fresh: 250, total: 750 },
+  { id: '4', list: HANJA_4, fresh: 250, total: 1000 },
 ]
 
 let running = 0
@@ -120,10 +124,13 @@ check('모든 한자어에 뜻풀이가 있음', noMeaning.length === 0, noMeani
 check('독음 문제를 채울 만큼 한자어가 있음 (≥24)', WORDS_8.length >= 24, `${WORDS_8.length}개`)
 
 // 쓰이지 않는 한자 = 그 글자는 독음 게임에 영영 안 나온다.
+// 낱말은 5급까지 손으로 채웠다. 그 위 급수는 한자·부수·필순·장단음으로 배우고
+// 독음/뜻풀이/한자쓰기 문제는 아래 급수 낱말에서 나온다 (README '알려진 제약' 참고).
+const WORD_COVERED: readonly string[] = ['8', '7II', '7', '6II', '6', '5II', '5']
 const usedInWords = new Set([...ALL_WORDS.flatMap((w) => [...w.word])])
-const unused = ALL_HANJA.filter((h) => !usedInWords.has(h.char)).map((h) => h.char)
+const unused = ALL_HANJA.filter((h) => WORD_COVERED.includes(h.grade) && !usedInWords.has(h.char)).map((h) => h.char)
 check(
-  `배정한자 ${ALL_HANJA.length}자 전부가 낱말에 최소 한 번은 쓰임`,
+  `5급까지 배정한자 전부가 낱말에 최소 한 번은 쓰임`,
   unused.length === 0,
   `미사용: ${unused.join(' ')}`,
 )
@@ -159,11 +166,20 @@ check(
 const extra = Object.keys(strokeMap).filter((c) => !seen.has(c))
 check('획순 데이터에 배정 외 글자가 섞이지 않음', extra.length === 0, extra.join(' '))
 
+// 상위 급수에는 획순 데이터가 없는 글자가 몇 자씩 있다. 빠뜨린 게 아니라
+// 알고 뺀 것임을 no-strokes.json으로 확인한다(필순 문제에서 자동 제외된다).
+const noStrokeList = new Set(JSON.parse(readFileSync(new URL('../src/data/no-strokes.json', import.meta.url), 'utf8')) as string[])
 const noStrokeAny = [...seen].filter((c) => !strokeMap[c])
+const unexplained = noStrokeAny.filter((c) => !noStrokeList.has(c))
 check(
-  '모든 급수의 한자에 획순 데이터가 있음',
-  noStrokeAny.length === 0,
-  noStrokeAny.join(' '),
+  '획순 없는 글자는 전부 no-strokes.json에 기록되어 있음',
+  unexplained.length === 0,
+  unexplained.join(' '),
+)
+check(
+  'no-strokes.json에 배정 외 글자가 없음',
+  [...noStrokeList].every((c) => seen.has(c)),
+  [...noStrokeList].filter((c) => !seen.has(c)).join(' '),
 )
 
 // 대체 자형을 쓴 글자는 반드시 필순에서 빠져야 한다 (자형이 정자와 다르므로)
@@ -183,6 +199,8 @@ const OFFICIAL = [
   { id: '6', total: 90, pass: 63 },
   { id: '5II', total: 100, pass: 70 },
   { id: '5', total: 100, pass: 70 },
+  { id: '4II', total: 100, pass: 70 },
+  { id: '4', total: 100, pass: 70 },
 ] as const
 
 for (const o of OFFICIAL) {
@@ -199,8 +217,9 @@ for (const o of OFFICIAL) {
   const noAnswer = qs.filter((q) => !q.choices.includes(q.answer))
   check(`${spec.name} 모든 문제에 정답이 보기에 있음`, noAnswer.length === 0, noAnswer.map((q) => q.stem).join(' '))
 
-  const notFour = qs.filter((q) => q.choices.length !== 4)
-  check(`${spec.name} 모든 문제가 4지선다`, notFour.length === 0, notFour.map((q) => `${q.stem}:${q.choices.length}`).join(' '))
+  // 장단음만 2지선다(길게/짧게), 나머지는 4지선다
+  const notFour = qs.filter((q) => q.choices.length !== (q.kind === '장단음' ? 2 : 4))
+  check(`${spec.name} 보기 개수가 유형에 맞음`, notFour.length === 0, notFour.map((q) => `${q.stem}:${q.choices.length}`).join(' '))
 
   const dupChoice = qs.filter((q) => new Set(q.choices).size !== q.choices.length)
   check(`${spec.name} 보기에 같은 것이 두 번 안 나옴`, dupChoice.length === 0, dupChoice.map((q) => q.stem).join(' '))

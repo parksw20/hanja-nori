@@ -5,3 +5,5 @@ dist/
 
 # 생성물 — scripts/build-strokes.ts 가 hanzi-writer-data에서 굽는다 (npm run data)
 src/data/strokes-*.json
+src/data/radicals.json
+src/data/no-strokes.json

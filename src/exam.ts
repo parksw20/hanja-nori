@@ -15,6 +15,12 @@ import type { GradeId } from './data/types'
 import { LADDER, cumulative, wordsUpTo, hunEumOf, HANJA_BY_CHAR } from './data/words'
 import { ANTONYMS, SYNONYMS, IDIOMS, ABBREVS, upTo } from './data/pairs'
 import { NO_PILSUN } from './data/grades'
+import radicalsJson from './data/radicals.json'
+import noStrokesJson from './data/no-strokes.json'
+
+const RADICALS = radicalsJson as Record<string, string>
+/** 획순 데이터가 없어 필순 문제를 낼 수 없는 글자 (build-strokes.ts가 굽는다) */
+const NO_STROKES = new Set(noStrokesJson as string[])
 import * as srs from './srs'
 import * as progress from './progress'
 import * as sfx from './sfx'
@@ -36,6 +42,10 @@ export interface ExamSpec {
   pilsun: number
   /** 약자 — 5급II부터 */
   abbrev: number
+  /** 부수 — 4급II부터 */
+  radical: number
+  /** 장단음 — 4급부터 */
+  tone: number
   total: number
   pass: number
   minutes: number
@@ -84,6 +94,48 @@ export const EXAMS: Readonly<Record<GradeId, ExamSpec>> = {
     50,
     500,
   ),
+  // 4급II부터 부수, 4급부터 장단음이 들어온다
+  '4II': mk(
+    '4II',
+    '4급II',
+    {
+      dokeum: 35,
+      hunmum: 22,
+      antonym: 3,
+      idiom: 5,
+      synonym: 3,
+      homonym: 3,
+      meaning: 3,
+      abbrev: 3,
+      radical: 3,
+      writing: 20,
+    },
+    100,
+    70,
+    50,
+    750,
+  ),
+  '4': mk(
+    '4',
+    '4급',
+    {
+      dokeum: 32,
+      hunmum: 22,
+      tone: 3,
+      antonym: 3,
+      idiom: 5,
+      synonym: 3,
+      homonym: 3,
+      meaning: 3,
+      abbrev: 3,
+      radical: 3,
+      writing: 20,
+    },
+    100,
+    70,
+    50,
+    1000,
+  ),
 }
 
 function mk(
@@ -108,6 +160,8 @@ function mk(
     writing: 0,
     pilsun: 0,
     abbrev: 0,
+    radical: 0,
+    tone: 0,
     total,
     pass,
     minutes,
@@ -124,7 +178,9 @@ function mk(
     spec.meaning +
     spec.writing +
     spec.pilsun +
-    spec.abbrev
+    spec.abbrev +
+    spec.radical +
+    spec.tone
   // 출제기준표를 옮겨 적다 틀리면 여기서 즉시 터진다
   if (sum !== total) throw new Error(`${name} 출제 구성 합계가 ${sum}인데 총문항은 ${total}이다`)
   return spec
@@ -155,7 +211,19 @@ function cooldownCard(leftMs: number, onBack: () => void): HTMLElement {
   return box
 }
 
-type QKind = '독음' | '훈음' | '반의어' | '완성형' | '유의어' | '동음이의어' | '뜻풀이' | '한자쓰기' | '약자' | '필순'
+type QKind =
+  | '독음'
+  | '훈음'
+  | '반의어'
+  | '완성형'
+  | '유의어'
+  | '동음이의어'
+  | '뜻풀이'
+  | '한자쓰기'
+  | '약자'
+  | '부수'
+  | '장단음'
+  | '필순'
 
 interface Question {
   kind: QKind
@@ -173,12 +241,13 @@ function take<T>(arr: T[], n: number): T[] {
   return srs.shuffle(arr).slice(0, n)
 }
 
-/** 정답 + 오답 3개를 섞어 4지선다로 */
+/**
+ * 정답 + 오답 3개를 섞어 4지선다로.
+ * pool에 같은 값이 두 번 들어 있으면 보기에 같은 것이 두 번 뜨므로 먼저 중복을 없앤다
+ * (독음의 '독음' 목록처럼 서로 다른 낱말이 같은 소리를 갖는 경우가 있다).
+ */
 function choose(answer: string, pool: string[]): string[] {
-  const distractors = take(
-    pool.filter((p) => p !== answer),
-    3,
-  )
+  const distractors = take([...new Set(pool)].filter((p) => p !== answer), 3)
   return srs.shuffle([answer, ...distractors])
 }
 
@@ -311,9 +380,45 @@ export function buildQuestions(spec: ExamSpec): Question[] {
     }
   }
 
+  // ── 부수: 이 한자의 부수는? ────────────────────────────────
+  if (spec.radical > 0) {
+    const withRad = chars.filter((h) => RADICALS[h.char])
+    const allRads = [...new Set(withRad.map((h) => RADICALS[h.char]))]
+    for (const h of take(withRad, spec.radical)) {
+      const r = RADICALS[h.char]
+      qs.push({
+        kind: '부수',
+        stem: h.char,
+        choices: choose(r, allRads),
+        answer: r,
+        chars: [h.char],
+        note: `${h.char}(${hunEumOf(h.char)})의 부수는 ${r}`,
+      })
+    }
+  }
+
+  // ── 장단음: 길게 읽나 짧게 읽나 ────────────────────────────
+  if (spec.tone > 0) {
+    // 장단음이 분명한 글자만 낸다 (혼용은 답이 갈린다)
+    const clear = chars.filter((h) => h.tone !== 'both')
+    for (const h of take(clear, spec.tone)) {
+      const answer = h.tone === 'long' ? '길게' : '짧게'
+      qs.push({
+        kind: '장단음',
+        stem: `${h.char} (${h.eum})`,
+        choices: srs.shuffle(['길게', '짧게']),
+        answer,
+        chars: [h.char],
+        note: `${h.char}(${hunEumOf(h.char)})의 음 '${h.eum}'은 ${answer} 읽는다`,
+      })
+    }
+  }
+
   // ── 필순: 강조된 획이 몇 번째인가 ──────────────────────────
   // 획이 너무 적으면 문제가 안 되고, 자형이 정자와 다른 글자(NO_PILSUN)는 물으면 안 된다.
-  const writable = chars.filter((h) => strokeCount(h.char) >= 5 && !NO_PILSUN.has(h.char))
+  const writable = chars.filter(
+    (h) => strokeCount(h.char) >= 5 && !NO_PILSUN.has(h.char) && !NO_STROKES.has(h.char),
+  )
   for (const h of take(writable, spec.pilsun)) {
     const n = strokeCount(h.char)
     const target = Math.floor(Math.random() * n)
@@ -345,6 +450,8 @@ const ASK: Record<QKind, string> = {
   뜻풀이: '이 뜻을 가진 낱말은?',
   한자쓰기: '이 말을 한자로 쓰면?',
   약자: '이 한자를 줄여 쓰면?',
+  부수: '이 한자의 부수는?',
+  장단음: '이 한자의 음은 길게 읽을까요, 짧게 읽을까요?',
   필순: '빨간 획은 몇 번째로 쓸까요?',
 }
 
@@ -357,6 +464,7 @@ const HANJA_CHOICES: ReadonlySet<QKind> = new Set([
   '뜻풀이',
   '한자쓰기',
   '약자',
+  '부수',
 ])
 
 export const examScreen =

@@ -9,6 +9,7 @@ import * as sfx from './sfx'
 import * as backup from './backup'
 import { EXAMS, examScreen } from './exam'
 import { wordbookScreen } from './wordbook'
+import { manualScreen } from './manual'
 import { hunmumGame } from './games/hunmum'
 import { dokeumGame } from './games/dokeum'
 import { pilsunGame } from './games/pilsun'
@@ -211,6 +212,15 @@ const home: Screen = (root, nav) => {
         menu,
         // 단어장은 메뉴 패널 맨 아래 — 놀이가 아니라 "모은 것을 보는 곳"이라 따로 둔다
         wordbookButton(grade, nav),
+        el('button', {
+          class: 'gd-manual',
+          type: 'button',
+          text: '❓ 놀이 방법',
+          onclick: () => {
+            sfx.tap()
+            nav(manualScreen(home))
+          },
+        }),
         soundToggle(),
         voicePicker(),
         el('footer', { class: 'gd-foot' }, [
