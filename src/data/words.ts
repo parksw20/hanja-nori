@@ -1,9 +1,20 @@
 import type { GradeId, Hanja, Word } from './types'
 import { HANJA_8, WORDS_8 } from './hanja8'
-import { HANJA_7II, HANJA_7, HANJA_6II, HANJA_6, HANJA_5II, HANJA_5, HANJA_4II, HANJA_4 } from './grades'
+import {
+  HANJA_7II,
+  HANJA_7,
+  HANJA_6II,
+  HANJA_6,
+  HANJA_5II,
+  HANJA_5,
+  HANJA_4II,
+  HANJA_4,
+  HANJA_3II,
+  HANJA_3,
+} from './grades'
 
 /** 급수 사다리 — 아래에서 위로. 이 순서가 해금 순서이자 누계 순서다. */
-export const LADDER: readonly GradeId[] = ['8', '7II', '7', '6II', '6', '5II', '5', '4II', '4']
+export const LADDER: readonly GradeId[] = ['8', '7II', '7', '6II', '6', '5II', '5', '4II', '4', '3II', '3']
 
 export const NEW_BY_GRADE: Readonly<Record<GradeId, Hanja[]>> = {
   '8': HANJA_8,
@@ -15,6 +26,8 @@ export const NEW_BY_GRADE: Readonly<Record<GradeId, Hanja[]>> = {
   '5': HANJA_5,
   '4II': HANJA_4II,
   '4': HANJA_4,
+  '3II': HANJA_3II,
+  '3': HANJA_3,
 }
 
 /** 그 급수까지의 **누계** 배정한자 (8급 50 → 6급 300) */

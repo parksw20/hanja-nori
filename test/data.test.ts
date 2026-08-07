@@ -14,6 +14,8 @@ import {
   HANJA_5,
   HANJA_4II,
   HANJA_4,
+  HANJA_3II,
+  HANJA_3,
   STROKE_VARIANT,
   NO_PILSUN,
 } from '../src/data/grades'
@@ -78,6 +80,8 @@ const LADDER = [
   { id: '5', list: HANJA_5, fresh: 100, total: 500 },
   { id: '4II', list: HANJA_4II, fresh: 250, total: 750 },
   { id: '4', list: HANJA_4, fresh: 250, total: 1000 },
+  { id: '3II', list: HANJA_3II, fresh: 500, total: 1500 },
+  { id: '3', list: HANJA_3, fresh: 317, total: 1817 },
 ]
 
 let running = 0
@@ -201,6 +205,8 @@ const OFFICIAL = [
   { id: '5', total: 100, pass: 70 },
   { id: '4II', total: 100, pass: 70 },
   { id: '4', total: 100, pass: 70 },
+  { id: '3II', total: 150, pass: 105 },
+  { id: '3', total: 150, pass: 105 },
 ] as const
 
 for (const o of OFFICIAL) {
@@ -208,7 +214,9 @@ for (const o of OFFICIAL) {
   check(`${spec.name} 총문항 ${o.total}`, spec.total === o.total, `실제 ${spec.total}`)
   check(`${spec.name} 합격문항 ${o.pass} (70%)`, spec.pass === o.pass, `실제 ${spec.pass}`)
   check(`${spec.name} 합격선이 70% 이상`, spec.pass / spec.total >= 0.7)
-  check(`${spec.name} 시험시간 50분`, spec.minutes === 50, `실제 ${spec.minutes}분`)
+  // 3급II부터는 60분
+  const wantMin = spec.total >= 150 ? 60 : 50
+  check(`${spec.name} 시험시간 ${wantMin}분`, spec.minutes === wantMin, `실제 ${spec.minutes}분`)
 
   // 실제로 문제를 만들어 본다 — 데이터가 모자라면 문항 수가 안 채워진다
   const qs = buildQuestions(spec)

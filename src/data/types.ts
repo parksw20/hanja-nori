@@ -1,5 +1,5 @@
 /** 급수 식별자. 8급 → '8', 7급II → '7II' 처럼 쓴다. */
-export type GradeId = '8' | '7II' | '7' | '6II' | '6' | '5II' | '5' | '4II' | '4'
+export type GradeId = '8' | '7II' | '7' | '6II' | '6' | '5II' | '5' | '4II' | '4' | '3II' | '3'
 
 /** 배정한자 한 글자. 획수·부수처럼 데이터에서 계산 가능한 값은 여기 손으로 적지 않는다. */
 export interface Hanja {
