@@ -13,7 +13,18 @@ export interface ExamRecord {
   seconds: number
   /** 언제 (epoch ms) */
   at: number
+  /** 어느 급수 (예전 기록에는 없다) */
+  grade?: string
 }
+
+/**
+ * 한 번 보고 나면 다시 볼 때까지 기다리는 시간.
+ *
+ * 시험이 곧 게임의 보상 구간이라, 떨어지면 바로 다시 눌러 반복하게 된다.
+ * 그러면 문제를 외워서 찍게 되고 복습은 건너뛴다. 사이에 쉬는 시간을 두어
+ * "틀린 것부터 다시 보고 오라"는 뜻을 준다.
+ */
+export const EXAM_COOLDOWN_MS = 10 * 60 * 1000
 
 export interface Progress {
   /** 미니게임별 최고 점수 */
@@ -71,6 +82,14 @@ export function recordExam(r: ExamRecord, certificate: string): void {
 
 export function hasCertificate(id: string): boolean {
   return p.certificates.includes(id)
+}
+
+/** 그 급수 시험을 다시 볼 수 있을 때까지 남은 시간(ms). 0이면 지금 볼 수 있다. */
+export function examCooldownLeft(grade: string, now = Date.now()): number {
+  // grade가 없는 예전 기록은 어느 급수인지 몰라 제한에 쓰지 않는다
+  const last = p.exams.find((e) => e.grade === grade)
+  if (!last) return 0
+  return Math.max(0, last.at + EXAM_COOLDOWN_MS - now)
 }
 
 export function resetAll(): void {

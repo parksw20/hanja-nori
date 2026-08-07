@@ -1,6 +1,6 @@
 import './style.css'
 import type { GradeId } from './data/types'
-import { LADDER, cumulative, hunEumOf } from './data/words'
+import { LADDER, NEW_BY_GRADE, cumulative, hunEumOf } from './data/words'
 import * as srs from './srs'
 import * as progress from './progress'
 import * as tts from './tts'
@@ -35,34 +35,74 @@ function currentGrade(): GradeId {
   return LADDER.find((g) => !progress.hasCertificate(g)) ?? LADDER[LADDER.length - 1]
 }
 
-/** 사용자가 화면에서 고른 급수 (기본은 도전 중인 급수) */
-let viewing: GradeId | null = null
+/**
+ * 화면에서 고른 칸. `'all'`이면 해금된 한자를 전부 모아 보고,
+ * 급수를 고르면 **그 급수에 새로 나온 한자만** 본다.
+ * 급수마다 같은 글자가 반복해 보이면 "이번 급수에서 뭘 새로 배우는지"가 묻힌다.
+ */
+let viewing: GradeId | 'all' | null = null
+
+/** 지금까지 열린 가장 높은 급수 (전체보기·놀이의 기준) */
+function topUnlocked(): GradeId {
+  let top = LADDER[0]
+  for (const g of LADDER) if (isUnlocked(g)) top = g
+  return top
+}
 
 const home: Screen = (root, nav) => {
-  const grade = viewing && isUnlocked(viewing) ? viewing : currentGrade()
-  viewing = grade
+  const showAll = viewing === 'all'
+  // 놀이·시험은 언제나 누계 기준. 전체보기일 때는 열린 가장 높은 급수로 논다.
+  let grade: GradeId
+  if (showAll) grade = topUnlocked()
+  else if (viewing !== null && viewing !== 'all' && isUnlocked(viewing)) grade = viewing
+  else grade = currentGrade()
+  if (!showAll) viewing = grade
   const spec = EXAMS[grade]
-  const chars = cumulative(grade).map((h) => h.char)
+  // 정원에 깔 글자: 전체보기면 누계, 급수를 고르면 그 급수 신규만
+  const chars = (showAll ? cumulative(grade) : NEW_BY_GRADE[grade]).map((h) => h.char)
   const s = srs.summary(chars)
   const p = progress.get()
 
-  // ── 급수 고르기 ────────────────────────────────────────────
-  const picker = el(
-    'div',
-    { class: 'gd-picker' },
-    LADDER.map((g) => {
+  // ── 급수 고르기 (맨 왼쪽이 전체보기) ────────────────────────
+  const allBtn = el(
+    'button',
+    {
+      class: `gd-grade gd-grade--all ${showAll ? 'gd-grade--on' : ''}`,
+      type: 'button',
+      title: `열린 한자 ${cumulative(topUnlocked()).length}자를 모두 봅니다`,
+    },
+    [
+      el('span', { class: 'gd-grade__name', text: '전체' }),
+      el('span', { class: 'gd-grade__mark', text: `${cumulative(topUnlocked()).length}자` }),
+    ],
+  )
+  allBtn.addEventListener('click', () => {
+    sfx.tap()
+    viewing = 'all'
+    nav(home)
+  })
+
+  const picker = el('div', { class: 'gd-picker' }, [
+    allBtn,
+    ...LADDER.map((g) => {
       const unlocked = isUnlocked(g)
       const done = progress.hasCertificate(g)
       const btn = el(
         'button',
         {
-          class: `gd-grade ${g === grade ? 'gd-grade--on' : ''} ${unlocked ? '' : 'gd-grade--locked'}`,
+          class: `gd-grade ${!showAll && g === grade ? 'gd-grade--on' : ''} ${unlocked ? '' : 'gd-grade--locked'}`,
           type: 'button',
-          title: unlocked ? `${EXAMS[g].name} (${EXAMS[g].chars}자)` : `${EXAMS[LADDER[LADDER.indexOf(g) - 1]].name}에 합격하면 열려요`,
+          title: unlocked
+            ? `${EXAMS[g].name} 신규 ${NEW_BY_GRADE[g].length}자 (누계 ${EXAMS[g].chars}자)`
+            : `${EXAMS[LADDER[LADDER.indexOf(g) - 1]].name}에 합격하면 열려요`,
         },
         [
           el('span', { class: 'gd-grade__name', text: EXAMS[g].name }),
-          el('span', { class: 'gd-grade__mark', text: done ? '🎖️' : unlocked ? `${EXAMS[g].chars}자` : '🔒' }),
+          // 급수 칸에는 그 급수에서 **새로 나오는** 자 수를 적는다
+          el('span', {
+            class: 'gd-grade__mark',
+            text: done ? '🎖️' : unlocked ? `+${NEW_BY_GRADE[g].length}자` : '🔒',
+          }),
         ],
       )
       btn.addEventListener('click', () => {
@@ -71,12 +111,13 @@ const home: Screen = (root, nav) => {
           alert(`${prev.name} 모의고사에 합격하면 열려요!`)
           return
         }
+        sfx.tap()
         viewing = g
         nav(home)
       })
       return btn
     }),
-  )
+  ])
 
   // ── 정원 ──────────────────────────────────────────────────
   const garden = el(
@@ -122,7 +163,9 @@ const home: Screen = (root, nav) => {
     }),
   )
 
-  const examBest = p.exams.filter((e) => e.total === spec.total)
+  const examBest = p.exams.filter((e) => (e.grade ? e.grade === grade : e.total === spec.total))
+  const cooldown = progress.examCooldownLeft(grade)
+  const cooldownText = cooldown > 0 ? `${Math.ceil(cooldown / 60000)}분 뒤에 다시 볼 수 있어요` : ''
   const menu = el('div', { class: 'gd-menu' }, [
     menuButton('🃏', '훈음 짝맞추기', '뜻과 소리를 짝지어요', 'hunmum', () => nav(hunmumGame(grade, home))),
     menuButton('☄️', '독음 요격', '낱말을 소리내어 읽어요', 'dokeum', () => nav(dokeumGame(grade, home))),
@@ -139,12 +182,12 @@ const home: Screen = (root, nav) => {
         },
       },
       [
-      el('span', { class: 'gd-item__emoji', text: progress.hasCertificate(grade) ? '🎖️' : '📝' }),
+      el('span', { class: 'gd-item__emoji', text: cooldown > 0 ? '⏳' : progress.hasCertificate(grade) ? '🎖️' : '📝' }),
       el('span', { class: 'gd-item__body' }, [
         el('span', { class: 'gd-item__name', text: `${spec.name} 모의고사` }),
         el('span', {
           class: 'gd-item__desc',
-          text: `${spec.total}문항 · ${spec.minutes}분 · ${spec.pass}문항 합격`,
+          text: cooldownText || `${spec.total}문항 · ${spec.minutes}분 · ${spec.pass}문항 합격`,
         }),
       ]),
       el('span', {
@@ -160,7 +203,10 @@ const home: Screen = (root, nav) => {
       el('aside', { class: 'gd-side' }, [
         el('header', { class: 'gd-head' }, [
           el('h1', { class: 'gd-head__title', text: '한자놀이' }),
-          el('span', { class: 'gd-head__grade', text: `${spec.name} · ${spec.chars}자` }),
+          el('span', {
+        class: 'gd-head__grade',
+        text: showAll ? `전체 · ${chars.length}자` : `${spec.name} 새 한자 ${chars.length}자`,
+      }),
         ]),
         menu,
         // 단어장은 메뉴 패널 맨 아래 — 놀이가 아니라 "모은 것을 보는 곳"이라 따로 둔다

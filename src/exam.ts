@@ -109,6 +109,31 @@ function mk(
   return spec
 }
 
+/** 다시 볼 수 있을 때까지 남은 시간을 세어 보여 준다 */
+function cooldownCard(leftMs: number, onBack: () => void): HTMLElement {
+  const timeEl = el('p', { class: 'hn-result__line' })
+  const box = resultCard({
+    emoji: '⏳',
+    title: '조금 쉬었다 봐요',
+    lines: ['방금 본 시험이에요.', '틀린 문제를 먼저 다시 보고 오면 더 잘 볼 수 있어요.'],
+    actions: [{ label: '정원으로', primary: true, onClick: onBack }],
+  })
+  box.insertBefore(timeEl, box.querySelector('.hn-result__actions'))
+
+  const until = Date.now() + leftMs
+  const tick = () => {
+    const s = Math.max(0, Math.ceil((until - Date.now()) / 1000))
+    timeEl.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')} 뒤에 다시 볼 수 있어요`
+    if (s <= 0) {
+      clearInterval(timer)
+      timeEl.textContent = '이제 다시 볼 수 있어요! 정원으로 돌아갔다 오세요.'
+    }
+  }
+  const timer = window.setInterval(tick, 1000)
+  tick()
+  return box
+}
+
 type QKind = '독음' | '훈음' | '반의어' | '완성형' | '유의어' | '동음이의어' | '뜻풀이' | '한자쓰기' | '필순'
 
 interface Question {
@@ -295,6 +320,15 @@ export const examScreen =
     let ticking = 0
     let disposed = false
 
+    // 방금 본 시험이면 쉬었다 오게 한다 (연달아 눌러 찍기만 반복하지 않도록)
+    const left = progress.examCooldownLeft(spec.id)
+    if (left > 0) {
+      root.append(topBar(`${spec.name} 모의고사`, () => nav(home)), cooldownCard(left, () => nav(home)))
+      return () => {
+        disposed = true
+      }
+    }
+
     // 필순 문제를 만들려면 획순 데이터가 있어야 한다 — 급수별로 나눠 받으므로 먼저 기다린다
     root.append(topBar(`${spec.name} 모의고사`, () => nav(home)), loadingBox('시험 준비 중…'))
     void strokes.loadUpTo(grade).then(() => {
@@ -342,7 +376,7 @@ export const examScreen =
 
       const seconds = Math.round((Date.now() - startedAt) / 1000)
       const passed = score >= spec.pass
-      progress.recordExam({ score, total: spec.total, passed, seconds, at: Date.now() }, spec.id)
+      progress.recordExam({ score, total: spec.total, passed, seconds, at: Date.now(), grade: spec.id }, spec.id)
       // 제출음이 끝난 뒤에 결과음 — 합격이면 팡파레가 끝나는 지점부터 박수가 이어진다
       setTimeout(() => {
         if (passed) {

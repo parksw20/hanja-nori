@@ -393,9 +393,19 @@ body {
 
 .gd-picker {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* 맨 왼쪽 '전체' + 급수들 */
+  grid-template-columns: repeat(6, 1fr);
   gap: 6px;
   margin-bottom: 14px;
+}
+
+/* 전체보기는 성격이 달라 색으로 구분 */
+.gd-grade--all {
+  border-color: #4f7cc4;
+}
+
+.gd-grade--all.gd-grade--on {
+  border-color: var(--hn-accent);
 }
 
 .gd-grade {
