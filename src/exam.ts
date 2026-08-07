@@ -13,7 +13,7 @@
  */
 import type { GradeId } from './data/types'
 import { LADDER, cumulative, wordsUpTo, hunEumOf, HANJA_BY_CHAR } from './data/words'
-import { ANTONYMS, SYNONYMS, IDIOMS, upTo } from './data/pairs'
+import { ANTONYMS, SYNONYMS, IDIOMS, ABBREVS, upTo } from './data/pairs'
 import { NO_PILSUN } from './data/grades'
 import * as srs from './srs'
 import * as progress from './progress'
@@ -34,6 +34,8 @@ export interface ExamSpec {
   meaning: number
   writing: number
   pilsun: number
+  /** 약자 — 5급II부터 */
+  abbrev: number
   total: number
   pass: number
   minutes: number
@@ -63,8 +65,25 @@ export const EXAMS: Readonly<Record<GradeId, ExamSpec>> = {
     50,
     300,
   ),
-  '5II': mk('5II', '5급II', {}, 0, 0, 50, 400),
-  '5': mk('5', '5급', {}, 0, 0, 50, 500),
+  // 5급II부터 약자(略字)가 들어온다
+  '5II': mk(
+    '5II',
+    '5급II',
+    { dokeum: 35, hunmum: 23, antonym: 3, idiom: 4, synonym: 3, homonym: 3, meaning: 3, abbrev: 3, writing: 20, pilsun: 3 },
+    100,
+    70,
+    50,
+    400,
+  ),
+  '5': mk(
+    '5',
+    '5급',
+    { dokeum: 35, hunmum: 23, antonym: 3, idiom: 4, synonym: 3, homonym: 3, meaning: 3, abbrev: 3, writing: 20, pilsun: 3 },
+    100,
+    70,
+    50,
+    500,
+  ),
 }
 
 function mk(
@@ -88,6 +107,7 @@ function mk(
     meaning: 0,
     writing: 0,
     pilsun: 0,
+    abbrev: 0,
     total,
     pass,
     minutes,
@@ -103,7 +123,8 @@ function mk(
     spec.homonym +
     spec.meaning +
     spec.writing +
-    spec.pilsun
+    spec.pilsun +
+    spec.abbrev
   // 출제기준표를 옮겨 적다 틀리면 여기서 즉시 터진다
   if (sum !== total) throw new Error(`${name} 출제 구성 합계가 ${sum}인데 총문항은 ${total}이다`)
   return spec
@@ -134,7 +155,7 @@ function cooldownCard(leftMs: number, onBack: () => void): HTMLElement {
   return box
 }
 
-type QKind = '독음' | '훈음' | '반의어' | '완성형' | '유의어' | '동음이의어' | '뜻풀이' | '한자쓰기' | '필순'
+type QKind = '독음' | '훈음' | '반의어' | '완성형' | '유의어' | '동음이의어' | '뜻풀이' | '한자쓰기' | '약자' | '필순'
 
 interface Question {
   kind: QKind
@@ -274,6 +295,22 @@ export function buildQuestions(spec: ExamSpec): Question[] {
     })
   }
 
+  // ── 약자: 정자를 주고 줄여 쓴 꼴 고르기 ────────────────────
+  if (spec.abbrev > 0) {
+    const pool = upTo(ABBREVS, spec.id)
+    const allShorts = pool.map((a) => a.short)
+    for (const a of take(pool, spec.abbrev)) {
+      qs.push({
+        kind: '약자',
+        stem: a.full,
+        choices: choose(a.short, allShorts),
+        answer: a.short,
+        chars: [a.full],
+        note: `${a.full}(${hunEumOf(a.full)})의 약자는 ${a.short}`,
+      })
+    }
+  }
+
   // ── 필순: 강조된 획이 몇 번째인가 ──────────────────────────
   // 획이 너무 적으면 문제가 안 되고, 자형이 정자와 다른 글자(NO_PILSUN)는 물으면 안 된다.
   const writable = chars.filter((h) => strokeCount(h.char) >= 5 && !NO_PILSUN.has(h.char))
@@ -307,11 +344,20 @@ const ASK: Record<QKind, string> = {
   동음이의어: '소리가 같은 한자는?',
   뜻풀이: '이 뜻을 가진 낱말은?',
   한자쓰기: '이 말을 한자로 쓰면?',
+  약자: '이 한자를 줄여 쓰면?',
   필순: '빨간 획은 몇 번째로 쓸까요?',
 }
 
 /** 보기가 한자(어)인 유형 — 글씨를 크게 보여 준다 */
-const HANJA_CHOICES: ReadonlySet<QKind> = new Set(['반의어', '유의어', '완성형', '동음이의어', '뜻풀이', '한자쓰기'])
+const HANJA_CHOICES: ReadonlySet<QKind> = new Set([
+  '반의어',
+  '유의어',
+  '완성형',
+  '동음이의어',
+  '뜻풀이',
+  '한자쓰기',
+  '약자',
+])
 
 export const examScreen =
   (grade: GradeId, home: Screen): Screen =>

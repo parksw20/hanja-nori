@@ -126,6 +126,57 @@ export const IDIOMS: Idiom[] = [
   ['父子有親', '부자유친', '아버지와 아들 사이에는 친함이 있어야 함'],
 ].map(([text, reading, meaning]) => ({ text, reading, meaning, grade: gradeOf(text) }))
 
+/**
+ * 약자(略字) — 5급II부터 출제 유형에 들어온다. 정자와 그 줄여 쓴 꼴의 짝.
+ * 정자가 배정한자 안에 있는 것만 넣는다(gradeOf가 검사한다).
+ */
+export interface Abbrev {
+  /** 정자 */
+  full: string
+  /** 약자 */
+  short: string
+  grade: GradeId
+}
+
+export const ABBREVS: Abbrev[] = [
+  ['學', '学'],
+  ['國', '国'],
+  ['氣', '気'],
+  ['萬', '万'],
+  ['數', '数'],
+  ['發', '発'],
+  ['對', '対'],
+  ['圖', '図'],
+  ['讀', '読'],
+  ['樂', '楽'],
+  ['藥', '薬'],
+  ['醫', '医'],
+  ['體', '体'],
+  ['戰', '战'],
+  ['區', '区'],
+  ['當', '当'],
+  ['兒', '児'],
+  ['來', '来'],
+  ['禮', '礼'],
+  ['變', '変'],
+  ['寫', '写'],
+  ['實', '実'],
+  ['惡', '悪'],
+  ['觀', '観'],
+  ['關', '関'],
+  ['廣', '広'],
+  ['舊', '旧'],
+  ['團', '団'],
+  ['獨', '独'],
+  ['參', '参'],
+  ['擧', '挙'],
+  ['賣', '売'],
+  ['鐵', '鉄'],
+  ['歷', '歴'],
+  ['德', '徳'],
+  ['傳', '伝'],
+].map(([full, short]) => ({ full, short, grade: gradeOf(full) }))
+
 /** 그 급수까지 낼 수 있는 것만 추린다 */
 export function upTo<T extends { grade: GradeId }>(items: T[], grade: GradeId): T[] {
   const max = RANK.get(grade) ?? 0

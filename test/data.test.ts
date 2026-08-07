@@ -5,7 +5,16 @@
  * 게임 로직보다 이 테스트가 먼저다. `npm test`.
  */
 import { HANJA_8, WORDS_8 } from '../src/data/hanja8'
-import { HANJA_7II, HANJA_7, HANJA_6II, HANJA_6, STROKE_VARIANT, NO_PILSUN } from '../src/data/grades'
+import {
+  HANJA_7II,
+  HANJA_7,
+  HANJA_6II,
+  HANJA_6,
+  HANJA_5II,
+  HANJA_5,
+  STROKE_VARIANT,
+  NO_PILSUN,
+} from '../src/data/grades'
 import { ALL_HANJA, ALL_WORDS } from '../src/data/words'
 import { EXAMS, buildQuestions } from '../src/exam'
 import { LEVELS, parseLevel, solve, rewardChar } from '../src/games/bloxorz'
@@ -63,6 +72,8 @@ const LADDER = [
   { id: '7', list: HANJA_7, fresh: 50, total: 150 },
   { id: '6II', list: HANJA_6II, fresh: 75, total: 225 },
   { id: '6', list: HANJA_6, fresh: 75, total: 300 },
+  { id: '5II', list: HANJA_5II, fresh: 100, total: 400 },
+  { id: '5', list: HANJA_5, fresh: 100, total: 500 },
 ]
 
 let running = 0
@@ -111,7 +122,11 @@ check('독음 문제를 채울 만큼 한자어가 있음 (≥24)', WORDS_8.leng
 // 쓰이지 않는 한자 = 그 글자는 독음 게임에 영영 안 나온다.
 const usedInWords = new Set([...ALL_WORDS.flatMap((w) => [...w.word])])
 const unused = ALL_HANJA.filter((h) => !usedInWords.has(h.char)).map((h) => h.char)
-check('300자 전부가 낱말에 최소 한 번은 쓰임', unused.length === 0, `미사용: ${unused.join(' ')}`)
+check(
+  `배정한자 ${ALL_HANJA.length}자 전부가 낱말에 최소 한 번은 쓰임`,
+  unused.length === 0,
+  `미사용: ${unused.join(' ')}`,
+)
 
 const allWordLenBad = ALL_WORDS.filter((w) => [...w.word].length !== [...w.reading].length)
 check(
@@ -166,6 +181,8 @@ const OFFICIAL = [
   { id: '7', total: 70, pass: 49 },
   { id: '6II', total: 80, pass: 56 },
   { id: '6', total: 90, pass: 63 },
+  { id: '5II', total: 100, pass: 70 },
+  { id: '5', total: 100, pass: 70 },
 ] as const
 
 for (const o of OFFICIAL) {
