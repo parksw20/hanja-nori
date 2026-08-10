@@ -400,6 +400,10 @@ export const bloxorzGame =
      * 모서리에서 넘어간 다음 **아래로 가속하며** 사라진다.
      * translate를 회전보다 **왼쪽**에 두어야 판 좌표계(위가 +Z)에서 아래로 내려간다 —
      * 오른쪽에 두면 회전된 블록의 축을 따라가서 엉뚱한 방향으로 날아간다.
+     *
+     * 흐려지게 하는 건 **각 면에** 건다. 묶음(.bx-block)에 opacity를 주면 브라우저가
+     * 그 안을 한 장으로 눌러 버려서(preserve-3d가 깨진다) 상자가 납작한 조각이 된다 —
+     * 실제로 150px 높이가 36px로 찌그러졌다.
      */
     function animateFall(from: Block, dir: Dir, onEnd: () => void) {
       const pivot = pivotOf(from, dir)
@@ -409,12 +413,18 @@ export const bloxorzGame =
 
       const anim = blockGroup.animate(
         [
-          { transform: 'none', opacity: 1, offset: 0, easing: 'cubic-bezier(0.4, 0, 1, 1)' },
-          { transform: pivot.t, opacity: 1, offset: 0.36, easing: 'cubic-bezier(0.5, 0, 1, 1)' },
-          { transform: `translate3d(0px, 0px, -900px) ${pivot.t}`, opacity: 0, offset: 1 },
+          { transform: 'none', offset: 0, easing: 'cubic-bezier(0.4, 0, 1, 1)' },
+          { transform: pivot.t, offset: 0.36, easing: 'cubic-bezier(0.5, 0, 1, 1)' },
+          { transform: `translate3d(0px, 0px, -900px) ${pivot.t}`, offset: 1 },
         ],
         { duration: FALL_MS, fill: 'forwards' },
       )
+      for (const f of blockGroup.children) {
+        ;(f as HTMLElement).animate([{ opacity: 1, offset: 0.55 }, { opacity: 0 }], {
+          duration: FALL_MS,
+          easing: 'ease-in',
+        })
+      }
       rollAnim = anim
       const finish = () => {
         anim.cancel()
