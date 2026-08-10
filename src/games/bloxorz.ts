@@ -200,7 +200,13 @@ export const bloxorzGame =
     // 만든 상자다. 카메라 각도에서 보이는 면만 그린다 (뒷면은 어차피 안 보인다).
     const view = el('div', { class: 'bx-view' })
     const scene = el('div', { class: 'bx-scene' })
+    /** 블록 다섯 면을 묶어 두는 그룹 — 굴릴 때 이 묶음만 모서리를 축으로 돌린다 */
+    const blockGroup = el('div', { class: 'bx-block' })
     view.append(scene)
+    /** 한 번 굴리는 데 걸리는 시간(ms) */
+    const ROLL_MS = 180
+    /** 굴러가는 중에는 다음 입력을 받지 않는다 (겹치면 자세가 꼬인다) */
+    let rolling = false
     const status = el('span', { class: 'bx-status' })
     const hint = el('p', { class: 'bx-hint', text: '블록을 굴려 노란 구멍에 세워서 빠뜨려요' })
 
@@ -296,12 +302,24 @@ export const bloxorzGame =
       }
       fit = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${k.toFixed(4)}) rotateX(${TILT}deg)`
       scene.style.transform = fit
+      // 재던 유령 블록을 치우고 진짜 바닥을 깐다
+      drawFloor()
     }
 
-    function draw() {
-      const parts: HTMLElement[] = []
+    /** 블록의 치수와 위치 (px) */
+    function geo(b: Block) {
+      return {
+        w: b.o === 'x' ? 2 * S : S,
+        d: b.o === 'y' ? 2 * S : S,
+        h: b.o === 'stand' ? 2 * S : S,
+        x: b.c * S,
+        y: b.r * S,
+      }
+    }
 
-      // 바닥 — 윗면 + 카메라 쪽 두 옆면(두께)
+    /** 바닥은 판이 바뀔 때만 다시 그린다 */
+    function drawFloor() {
+      const parts: HTMLElement[] = []
       for (let r = 0; r < lv.rows; r++) {
         for (let c = 0; c < lv.cols; c++) {
           const t = lv.grid[r][c]
@@ -314,33 +332,68 @@ export const bloxorzGame =
           parts.push(face('bx-face--slab', S, T, `translate3d(${x}px, ${y + S}px, 0px) rotateX(-90deg)`))
         }
       }
+      // 블록은 따로 묶어 둔다 — 굴릴 때 이 묶음만 모서리를 축으로 돌린다
+      scene.replaceChildren(...parts, blockGroup)
+      scene.style.transform = fit
+    }
 
-      // 블록 — 자세에 따라 상자의 가로·세로·높이가 바뀐다
-      const w = block.o === 'x' ? 2 * S : S
-      const d = block.o === 'y' ? 2 * S : S
-      const h = block.o === 'stand' ? 2 * S : S
-      const bx = block.c * S
-      const by = block.r * S
+    /** 블록 상자를 그 자세·위치에 맞게 그린다 */
+    function drawBlock(b: Block) {
+      const { w, d, h, x, y } = geo(b)
+      blockGroup.replaceChildren(
+        // 바닥에 드리운 그림자 — 블록이 어느 칸 위에 있는지 바로 읽힌다
+        face('bx-face--shadow', w, d, `translate3d(${x}px, ${y}px, 1px)`),
+        // 상자 다섯 면. 원근(perspective) 덕분에 블록이 가운데를 벗어나면 옆면도 실제로 보인다.
+        face('bx-face--btop', w, d, `translate3d(${x}px, ${y}px, ${h}px)`),
+        face('bx-face--bfront', w, h, `translate3d(${x}px, ${y + d}px, ${h}px) rotateX(-90deg)`),
+        face('bx-face--bback', w, h, `translate3d(${x}px, ${y}px, ${h}px) rotateX(-90deg)`),
+        face('bx-face--bright', h, d, `translate3d(${x + w}px, ${y}px, ${h}px) rotateY(90deg)`),
+        face('bx-face--bleft', h, d, `translate3d(${x}px, ${y}px, ${h}px) rotateY(90deg)`),
+      )
+    }
 
-      // 바닥에 드리운 그림자 — 블록이 어느 칸 위에 있는지 바로 읽힌다
-      parts.push(face('bx-face--shadow', w, d, `translate3d(${bx}px, ${by}px, 1px)`))
-      // 상자 다섯 면을 다 그린다. 원근(perspective) 덕분에 블록이 가운데를 벗어나면
-      // 옆면도 실제로 보인다 — 가려지는 면은 브라우저가 깊이로 알아서 정리한다.
-      parts.push(face('bx-face--btop', w, d, `translate3d(${bx}px, ${by}px, ${h}px)`))
-      parts.push(face('bx-face--bfront', w, h, `translate3d(${bx}px, ${by + d}px, ${h}px) rotateX(-90deg)`))
-      parts.push(face('bx-face--bback', w, h, `translate3d(${bx}px, ${by}px, ${h}px) rotateX(-90deg)`))
-      parts.push(face('bx-face--bright', h, d, `translate3d(${bx + w}px, ${by}px, ${h}px) rotateY(90deg)`))
-      parts.push(face('bx-face--bleft', h, d, `translate3d(${bx}px, ${by}px, ${h}px) rotateY(90deg)`))
-
-      scene.replaceChildren(...parts)
+    function draw() {
+      drawBlock(block)
+      blockGroup.style.transition = 'none'
+      blockGroup.style.transform = 'none'
       // 전체 단계 수를 같이 보여 준다 — 안 그러면 "여기서 안 넘어가나?" 싶어진다
       const 새단계 = levelNo + 1 === unlocked && cleared < LEVELS.length
       status.textContent = `${levelNo + 1} / ${LEVELS.length}단계${새단계 ? ' 🔓' : ''} · ${moves}번 굴림 · ${
         block.o === 'stand' ? '서 있음' : '누움'
       }`
+    }
 
-      // 카메라는 판마다 정해 둔 그대로 — 굴릴 때 판이 흔들리지 않는다
-      scene.style.transform = fit
+    /**
+     * 굴리는 모션.
+     *
+     * 블록이 순간이동하면 어느 쪽으로 굴렀는지, 눕는지 서는지가 안 보인다.
+     * 실제로 굴러가는 것처럼 **넘어가는 모서리를 축으로 90도 돌린다.**
+     * 다 돌면 새 자세로 다시 그리고 회전을 0으로 되돌린다(그림은 같은 자리에서 이어진다).
+     *
+     * 축과 방향 (카메라가 rotateX만 걸려 있어 X=열, Y=행, Z=위):
+     *   오른쪽 → 오른쪽 아래 모서리에서 rotateY(+90)   왼쪽 → 왼쪽 아래 모서리에서 rotateY(-90)
+     *   아래   → 앞쪽 아래 모서리에서 rotateX(-90)     위   → 뒤쪽 아래 모서리에서 rotateX(+90)
+     */
+    function animateRoll(from: Block, dir: Dir, onEnd: () => void) {
+      const { w, d, x, y } = geo(from)
+      const pivot =
+        dir === 'right'
+          ? { o: `${x + w}px ${y}px 0px`, t: 'rotateY(90deg)' }
+          : dir === 'left'
+            ? { o: `${x}px ${y}px 0px`, t: 'rotateY(-90deg)' }
+            : dir === 'down'
+              ? { o: `${x}px ${y + d}px 0px`, t: 'rotateX(-90deg)' }
+              : { o: `${x}px ${y}px 0px`, t: 'rotateX(90deg)' }
+
+      drawBlock(from)
+      blockGroup.style.transition = 'none'
+      blockGroup.style.transformOrigin = pivot.o
+      blockGroup.style.transform = 'none'
+      // 방금 넣은 값을 브라우저가 반영하게 한 뒤에 전환을 걸어야 애니메이션이 산다
+      void blockGroup.offsetWidth
+      blockGroup.style.transition = `transform ${ROLL_MS}ms cubic-bezier(0.33, 0, 0.3, 1)`
+      blockGroup.style.transform = pivot.t
+      setTimeout(onEnd, ROLL_MS)
     }
 
     /** 열린 단계 안에서만 돌린다 */
@@ -413,25 +466,38 @@ export const bloxorzGame =
     }
 
     function move(d: Dir) {
-      if (done) return
-      const nb = roll(block, d)
+      if (done || rolling) return
+      const from = block
+      const nb = roll(from, d)
       sfx.move()
+
       if (!isSupported(lv, nb)) {
-        // 판 밖으로 떨어졌다 — 처음부터
+        // 판 밖으로 떨어졌다 — 굴러서 떨어지는 것까지 보여 주고 처음으로
         falls++
-        block = { ...lv.start }
-        moves = 0
+        rolling = true
         sfx.soft()
         toast(root, '앗, 떨어졌어요!', 'bad')
-        view.classList.add('bx-view--fall')
-        setTimeout(() => view.classList.remove('bx-view--fall'), 400)
-        draw()
+        blockGroup.classList.add('bx-block--fall')
+        animateRoll(from, d, () => {
+          blockGroup.classList.remove('bx-block--fall')
+          block = { ...lv.start }
+          moves = 0
+          rolling = false
+          view.classList.add('bx-view--fall')
+          setTimeout(() => view.classList.remove('bx-view--fall'), 400)
+          draw()
+        })
         return
       }
-      block = nb
-      moves++
-      draw()
-      if (isWin(lv, block)) setTimeout(win, 250)
+
+      rolling = true
+      animateRoll(from, d, () => {
+        block = nb
+        moves++
+        rolling = false
+        draw()
+        if (isWin(lv, block)) setTimeout(win, 200)
+      })
     }
 
     const pad = el('div', { class: 'bx-pad' }, [

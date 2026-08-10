@@ -1097,6 +1097,25 @@ body {
   transform-origin: 0 0;
 }
 
+/*
+  블록 다섯 면을 묶는 그룹. 크기가 0인 껍데기라서 transform-origin에 준 px 값이
+  곧 판(scene) 좌표가 된다 — 굴릴 때 "넘어가는 모서리"를 그대로 축으로 쓸 수 있다.
+*/
+.bx-block {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+}
+
+/* 떨어질 때는 굴러 넘어가면서 사라진다 */
+.bx-block--fall {
+  opacity: 0;
+  transition: opacity 0.18s ease 0.06s;
+}
+
 /* 바닥 윗면 */
 .bx-face--floor {
   background: linear-gradient(160deg, #55689f, #44548a);

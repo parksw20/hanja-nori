@@ -15,9 +15,10 @@ import { cardsModal, el, resultCard, toast, topBar, type Screen } from '../ui'
 const GAME_ID = 'dokeum'
 const LIVES = 3
 /** 한 낱말이 바닥까지 내려오는 시간(ms). 판이 진행될수록 짧아진다. */
-const FALL_START = 9000
-const FALL_MIN = 4000
-const FALL_STEP = 400
+// 처음엔 9000/4000/400이었는데 아이가 읽기도 전에 떨어졌다 → 속도를 20% 줄였다(시간 ×1.25)
+const FALL_START = 11250
+const FALL_MIN = 5000
+const FALL_STEP = 500
 /** 이 점수마다 한자 카드 한 장 */
 const CARD_PER_SCORE = 200
 
