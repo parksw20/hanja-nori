@@ -1417,26 +1417,28 @@ body {
   justify-content: center;
 }
 
+/* 받을 때(hn-modal__mini)와 같은 금색 — 같은 물건인데 화면마다 달라 보이면 안 된다 */
 .wbb-card {
   display: grid;
   place-items: center;
   width: 74px;
   height: 100px;
   border-radius: 12px;
-  border: 1px solid var(--hn-line);
-  background: linear-gradient(160deg, #2b3661, var(--hn-bg-2));
-  color: var(--hn-ink);
+  border: 2px solid var(--hn-accent);
+  background: linear-gradient(160deg, #4a4225, #2b3352);
+  color: var(--hn-accent);
   cursor: pointer;
   padding: 0;
 }
 
 .wbb-card__char {
   font-size: 2.4rem;
+  color: var(--hn-accent);
 }
 
 .wbb-card__n {
   font-size: 0.78rem;
-  color: var(--hn-ink-dim);
+  color: #d9c48a;
 }
 
 .wbb-card--wrong {
@@ -1552,6 +1554,7 @@ body {
   gap: 8px;
 }
 
+/* 받을 때(hn-modal__mini)와 같은 금색 */
 .wb-card {
   position: relative;
   display: grid;
@@ -1559,16 +1562,17 @@ body {
   width: 62px;
   height: 84px;
   border-radius: 10px;
-  border: 1px solid var(--hn-line);
-  background: var(--hn-bg-2);
-  color: var(--hn-ink);
+  border: 2px solid var(--hn-accent);
+  background: linear-gradient(160deg, #4a4225, #2b3352);
+  color: var(--hn-accent);
   cursor: pointer;
   padding: 0;
 }
 
+/* 바탕이 이미 금색이라 테두리 색으로는 구분이 안 된다 — 빛나게 해서 고른 티를 낸다 */
 .wb-card--picked {
-  border-color: var(--hn-accent);
-  background: #3a3520;
+  box-shadow: 0 0 0 3px var(--hn-accent), 0 0 18px rgba(255, 209, 102, 0.55);
+  background: linear-gradient(160deg, #6b5c2c, #3a4470);
 }
 
 /* 단어장 본문의 카드는 보기 전용이라 누를 수 없다 */
@@ -1578,11 +1582,13 @@ body {
 
 .wb-card__char {
   font-size: 1.9rem;
+  color: var(--hn-accent);
 }
 
+/* 금색 바탕 위에서 --hn-ink-dim(푸른 회색)은 잘 안 읽힌다 */
 .wb-card__n {
   font-size: 0.75rem;
-  color: var(--hn-ink-dim);
+  color: #d9c48a;
 }
 
 .wb-card__pick {
