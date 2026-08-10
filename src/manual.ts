@@ -4,7 +4,7 @@
  * 아이 혼자 열어도 읽히도록 짧은 문장으로, 어른이 훑어도 규칙을 알 수 있도록 숫자를 함께 적는다.
  * 급수·문항 수 같은 숫자는 손으로 적지 않고 EXAMS·LADDER에서 가져온다 — 데이터가 바뀌면 여기도 따라간다.
  */
-import { EXAMS, EXAM_PRIZE } from './exam'
+import { EXAMS, EXAM_PRIZE_BASE, EXAM_PRIZE_BONUS } from './exam'
 import { LADDER, NEW_BY_GRADE, cumulative } from './data/words'
 import { EXAM_COOLDOWN_MS } from './progress'
 import { EXCHANGE_COST } from './cards'
@@ -49,7 +49,9 @@ function sections(): Section[] {
         '🖌️ 필순 따라쓰기 — 한 판을 끝내면 1장',
         '☄️ 독음 요격 — 200점마다 1장',
         `🧊 블록 굴리기 — 그 단계를 **처음** 깨면 단계 수만큼 (15단계면 서로 다른 15장). 이미 깬 단계는 안 줘요.`,
-        `📝 모의고사 — 합격하면 ${EXAM_PRIZE}장`,
+        `📝 모의고사 — 합격하면 ${EXAM_PRIZE_BASE}장, 점수만큼 최대 ${EXAM_PRIZE_BONUS}장 더 (만점이면 ${
+          EXAM_PRIZE_BASE + EXAM_PRIZE_BONUS
+        }장)`,
       ],
     },
     {

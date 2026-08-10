@@ -31,7 +31,25 @@ import { pickRewards } from './reward'
 import { cardsModal, el, loadingBox, progressBar, resultCard, topBar, type Screen } from './ui'
 
 /** 모의고사에 합격하면 주는 카드 수 */
-export const EXAM_PRIZE = 20
+/** 합격만 하면 주는 카드 */
+export const EXAM_PRIZE_BASE = 10
+/** 만점이면 여기까지 더 준다 (점수에 비례) */
+export const EXAM_PRIZE_BONUS = 10
+
+/**
+ * 합격 상품 = 기본 10장 + 점수만큼의 덤(만점이면 10장).
+ *
+ * 늘 20장을 주면 70%로 겨우 붙으나 만점을 맞으나 똑같아서 더 맞힐 이유가 없다.
+ * 합격선(70%)에서 17장, 만점에서 20장 — 잘 볼수록 눈에 보이게 는다.
+ *
+ * 올림이 아니라 **버림**이다. 반올림하면 50문항 중 48문항(96%)만 맞혀도 만점과 똑같은
+ * 20장이 나와서 "만점 기준"이라는 말이 무색해진다.
+ */
+export function examPrizeCount(score: number, total: number): number {
+  if (total <= 0) return EXAM_PRIZE_BASE
+  const ratio = Math.max(0, Math.min(1, score / total))
+  return EXAM_PRIZE_BASE + Math.floor(EXAM_PRIZE_BONUS * ratio)
+}
 
 export interface ExamSpec {
   id: GradeId
@@ -590,7 +608,7 @@ export const examScreen =
       }, 260)
 
       // 합격하면 카드를 넉넉히 준다 — 다음 급수 낱말을 바로 만들어 볼 수 있게
-      const prize = passed ? pickRewards(grade, EXAM_PRIZE) : []
+      const prize = passed ? pickRewards(grade, examPrizeCount(score, spec.total)) : []
       if (prize.length) cards.addMany(prize)
 
       const next = LADDER[LADDER.indexOf(grade) + 1]
@@ -619,7 +637,11 @@ export const examScreen =
                   ? `${spec.name} 급수증을 받았어요 — ${EXAMS[next].name}이 열렸어요!`
                   : `${spec.name} 급수증을 받았어요`
                 : `${spec.pass - score}문항만 더 맞히면 합격이에요`,
-              prize.length ? `한자 카드 ${prize.length}장을 받았어요` : '',
+              prize.length
+                ? `한자 카드 ${prize.length}장을 받았어요 (기본 ${EXAM_PRIZE_BASE}장 + 점수만큼 ${
+                    prize.length - EXAM_PRIZE_BASE
+                  }장)`
+                : '',
             ].filter(Boolean),
             actions: [
               { label: '다시 응시', primary: true, onClick: () => nav(examScreen(grade, home)) },

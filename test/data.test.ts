@@ -20,7 +20,7 @@ import {
   NO_PILSUN,
 } from '../src/data/grades'
 import { ALL_HANJA, ALL_WORDS } from '../src/data/words'
-import { EXAMS, buildQuestions } from '../src/exam'
+import { EXAMS, EXAM_PRIZE_BASE, EXAM_PRIZE_BONUS, buildQuestions, examPrizeCount } from '../src/exam'
 import { LEVELS, parseLevel, solve } from '../src/games/bloxorz'
 import { pickReward, pickRewards } from '../src/reward'
 import * as cards from '../src/cards'
@@ -236,6 +236,28 @@ for (const o of OFFICIAL) {
   const pilsunBad = qs.filter((q) => q.kind === '필순' && q.chars.some((c) => NO_PILSUN.has(c)))
   check(`${spec.name} 필순 문제에 대체 자형 글자가 안 나옴`, pilsunBad.length === 0, pilsunBad.map((q) => q.stem).join(' '))
 }
+
+// 합격 상품 = 기본 10장 + 점수만큼의 덤(만점 10장).
+// 늘 같은 장수를 주면 겨우 붙으나 만점을 맞으나 똑같아서 더 맞힐 이유가 없다.
+for (const g of GRADE_ORDER) {
+  const spec = EXAMS[g]
+  const 합격선 = examPrizeCount(spec.pass, spec.total)
+  const 만점 = examPrizeCount(spec.total, spec.total)
+  check(
+    `${spec.name} 만점 상품이 ${EXAM_PRIZE_BASE + EXAM_PRIZE_BONUS}장`,
+    만점 === EXAM_PRIZE_BASE + EXAM_PRIZE_BONUS,
+    `${만점}장`,
+  )
+  check(
+    `${spec.name} 합격선 상품이 기본 이상 만점 미만`,
+    합격선 >= EXAM_PRIZE_BASE && 합격선 < 만점,
+    `합격선 ${합격선}장 / 만점 ${만점}장`,
+  )
+  // 한 문항이라도 틀리면 만점 상품이 아니어야 한다 (반올림하면 96%도 만점 대접을 받았다)
+  const 하나틀림 = examPrizeCount(spec.total - 1, spec.total)
+  check(`${spec.name} 한 문항 틀리면 만점보다 적음`, 하나틀림 < 만점, `${하나틀림}장 / 만점 ${만점}장`)
+}
+check('0점이면 기본만', examPrizeCount(0, 100) === EXAM_PRIZE_BASE, `${examPrizeCount(0, 100)}장`)
 
 // ── 5. 블록 굴리기 레벨 ──────────────────────────────────────────
 // 손으로 그린 판은 풀 수 없는 것이 섞인다 (실제로 처음 5단계가 그랬다). BFS로 전수 검사.
