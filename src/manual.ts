@@ -4,7 +4,7 @@
  * 아이 혼자 열어도 읽히도록 짧은 문장으로, 어른이 훑어도 규칙을 알 수 있도록 숫자를 함께 적는다.
  * 급수·문항 수 같은 숫자는 손으로 적지 않고 EXAMS·LADDER에서 가져온다 — 데이터가 바뀌면 여기도 따라간다.
  */
-import { EXAMS } from './exam'
+import { EXAMS, EXAM_PRIZE } from './exam'
 import { LADDER, NEW_BY_GRADE, cumulative } from './data/words'
 import { EXAM_COOLDOWN_MS } from './progress'
 import { EXCHANGE_COST } from './cards'
@@ -42,10 +42,21 @@ function sections(): Section[] {
       ],
     },
     {
+      icon: '🎴',
+      title: '한자 카드 받는 법',
+      lines: [
+        '🃏 훈음 짝맞추기 — 한 판을 끝내면 1장',
+        '🖌️ 필순 따라쓰기 — 한 판을 끝내면 1장',
+        '☄️ 독음 요격 — 200점마다 1장',
+        `🧊 블록 굴리기 — 그 단계를 **처음** 깨면 단계 수만큼 (15단계면 서로 다른 15장). 이미 깬 단계는 안 줘요.`,
+        `📝 모의고사 — 합격하면 ${EXAM_PRIZE}장`,
+      ],
+    },
+    {
       icon: '📒',
       title: '카드와 단어장',
       lines: [
-        '블록 굴리기를 깨면 한자 카드가 나와요. 메인 화면 글자 왼쪽 아래에 몇 장인지 표시돼요.',
+        '받은 카드는 메인 화면 글자 왼쪽 아래에 몇 장인지 표시돼요.',
         '단어장에서 카드를 한 글자씩 끼워 낱말을 만들어요. 앞에서부터 순서대로 넣어야 해요.',
         '國 2장 · 外 1장 · 民 1장이 있으면 外國과 國民을 만들 수 있어요.',
         '낱말을 만들면 카드는 없어지고 단어장에 쌓여요.',

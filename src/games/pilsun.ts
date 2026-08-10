@@ -14,7 +14,9 @@ import type { GradeId, StrokeData } from '../data/types'
 import * as srs from '../srs'
 import * as progress from '../progress'
 import * as tts from '../tts'
-import { el, loadingBox, resultCard, toast, topBar, type Screen } from '../ui'
+import * as cards from '../cards'
+import { pickRewards } from '../reward'
+import { el, loadingBox, prizeModal, resultCard, toast, topBar, type Screen } from '../ui'
 
 const GAME_ID = 'pilsun'
 const ROUND = 5
@@ -139,20 +141,35 @@ export const pilsunGame =
 
     function finish() {
       const isBest = progress.recordBest(GAME_ID, score)
-      root.replaceChildren(
-        topBar('필순 따라쓰기', () => nav(home)),
-        resultCard({
-          emoji: totalMistakes === 0 ? '🖌️' : '✏️',
-          title: `${score}점`,
-          lines: [
-            `${ROUND}자를 썼어요`,
-            totalMistakes === 0 ? '한 획도 안 틀렸어요!' : `삐끗한 획 ${totalMistakes}번`,
-            isBest ? '새 최고 기록!' : `최고 기록 ${progress.bestOf(GAME_ID)}점`,
-          ],
-          actions: [
-            { label: '한 판 더', primary: true, onClick: () => nav(pilsunGame(grade, home)) },
-            { label: '정원으로', onClick: () => nav(home) },
-          ],
+      // 한 판을 끝내면 카드 한 장
+      const prize = pickRewards(grade, 1)
+      cards.addMany(prize)
+
+      const showResult = () =>
+        root.replaceChildren(
+          topBar('필순 따라쓰기', () => nav(home)),
+          resultCard({
+            emoji: totalMistakes === 0 ? '🖌️' : '✏️',
+            title: `${score}점`,
+            lines: [
+              `${ROUND}자를 썼어요`,
+              totalMistakes === 0 ? '한 획도 안 틀렸어요!' : `삐끗한 획 ${totalMistakes}번`,
+              `한자 카드 1장을 받았어요`,
+              isBest ? '새 최고 기록!' : `최고 기록 ${progress.bestOf(GAME_ID)}점`,
+            ],
+            actions: [
+              { label: '한 판 더', primary: true, onClick: () => nav(pilsunGame(grade, home)) },
+              { label: '정원으로', onClick: () => nav(home) },
+            ],
+          }),
+        )
+
+      root.append(
+        prizeModal({
+          char: prize[0],
+          title: `${hunEumOf(prize[0])} 카드`,
+          lines: [`${prize[0]} 카드를 받았어요`, `모두 ${cards.count(prize[0])}장`],
+          onConfirm: showResult,
         }),
       )
     }

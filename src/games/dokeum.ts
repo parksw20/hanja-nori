@@ -8,7 +8,9 @@ import type { GradeId, Word } from '../data/types'
 import * as srs from '../srs'
 import * as progress from '../progress'
 import * as tts from '../tts'
-import { el, resultCard, toast, topBar, type Screen } from '../ui'
+import * as cards from '../cards'
+import { pickRewards } from '../reward'
+import { cardsModal, el, resultCard, toast, topBar, type Screen } from '../ui'
 
 const GAME_ID = 'dokeum'
 const LIVES = 3
@@ -16,6 +18,8 @@ const LIVES = 3
 const FALL_START = 9000
 const FALL_MIN = 4000
 const FALL_STEP = 400
+/** 이 점수마다 한자 카드 한 장 */
+const CARD_PER_SCORE = 200
 
 export const dokeumGame =
   (grade: GradeId, home: Screen): Screen =>
@@ -146,19 +150,41 @@ export const dokeumGame =
       over = true
       stopFall()
       const isBest = progress.recordBest(GAME_ID, score)
-      root.replaceChildren(
-        topBar('독음 요격', () => nav(home)),
-        resultCard({
-          emoji: score >= 200 ? '🚀' : '☄️',
-          title: `${score}점`,
-          lines: [
-            `낱말 ${solved}개를 읽었어요`,
-            isBest ? '새 최고 기록!' : `최고 기록 ${progress.bestOf(GAME_ID)}점`,
-          ],
-          actions: [
-            { label: '한 판 더', primary: true, onClick: () => nav(dokeumGame(grade, home)) },
-            { label: '정원으로', onClick: () => nav(home) },
-          ],
+      // 200점마다 카드 한 장 — 오래 버틸수록 더 준다
+      const n = Math.floor(score / CARD_PER_SCORE)
+      const prize = n > 0 ? pickRewards(grade, n) : []
+      if (prize.length) cards.addMany(prize)
+
+      const showResult = () =>
+        root.replaceChildren(
+          topBar('독음 요격', () => nav(home)),
+          resultCard({
+            emoji: score >= 200 ? '🚀' : '☄️',
+            title: `${score}점`,
+            lines: [
+              `낱말 ${solved}개를 읽었어요`,
+              prize.length
+                ? `한자 카드 ${prize.length}장을 받았어요 (${CARD_PER_SCORE}점마다 1장)`
+                : `${CARD_PER_SCORE}점을 넘기면 카드를 받아요`,
+              isBest ? '새 최고 기록!' : `최고 기록 ${progress.bestOf(GAME_ID)}점`,
+            ],
+            actions: [
+              { label: '한 판 더', primary: true, onClick: () => nav(dokeumGame(grade, home)) },
+              { label: '정원으로', onClick: () => nav(home) },
+            ],
+          }),
+        )
+
+      if (!prize.length) {
+        showResult()
+        return
+      }
+      root.append(
+        cardsModal({
+          chars: prize,
+          title: `한자 카드 ${prize.length}장`,
+          lines: [`${score}점을 냈어요!`],
+          onConfirm: showResult,
         }),
       )
     }

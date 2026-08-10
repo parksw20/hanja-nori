@@ -68,6 +68,12 @@ export function add(char: string, n = 1): void {
   save()
 }
 
+/** 여러 장을 한 번에 (저장은 한 번만 한다) */
+export function addMany(chars: string[]): void {
+  for (const c of chars) store.cards[c] = (store.cards[c] ?? 0) + 1
+  save()
+}
+
 /** 낱말에 필요한 글자별 장수 */
 export function need(word: string): Map<string, number> {
   const m = new Map<string, number>()

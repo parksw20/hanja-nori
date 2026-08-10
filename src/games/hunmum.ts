@@ -7,7 +7,9 @@ import { cumulative, hunEumOf } from '../data/words'
 import * as srs from '../srs'
 import * as progress from '../progress'
 import * as tts from '../tts'
-import { el, resultCard, toast, type Screen } from '../ui'
+import * as cardStore from '../cards'
+import { pickRewards } from '../reward'
+import { el, prizeModal, resultCard, toast, type Screen } from '../ui'
 import { topBar } from '../ui'
 
 const GAME_ID = 'hunmum'
@@ -50,20 +52,35 @@ export const hunmumGame =
       const score = Math.max(0, PAIRS * 100 - misses * 20 - Math.max(0, seconds - 30) * 2)
       const isBest = progress.recordBest(GAME_ID, score)
 
-      root.replaceChildren(
-        topBar('훈음 짝맞추기', () => nav(home)),
-        resultCard({
-          emoji: misses <= 2 ? '🌟' : '🌱',
-          title: `${score}점`,
-          lines: [
-            `${PAIRS}쌍을 ${seconds}초에 맞혔어요`,
-            `헛짚은 횟수 ${misses}번`,
-            isBest ? '새 최고 기록!' : `최고 기록 ${progress.bestOf(GAME_ID)}점`,
-          ],
-          actions: [
-            { label: '한 판 더', primary: true, onClick: () => nav(hunmumGame(grade, home)) },
-            { label: '정원으로', onClick: () => nav(home) },
-          ],
+      // 한 판을 끝내면 카드 한 장 — 블록 굴리기만으로는 카드가 너무 안 모인다
+      const prize = pickRewards(grade, 1)
+      cardStore.addMany(prize)
+
+      const showResult = () =>
+        root.replaceChildren(
+          topBar('훈음 짝맞추기', () => nav(home)),
+          resultCard({
+            emoji: misses <= 2 ? '🌟' : '🌱',
+            title: `${score}점`,
+            lines: [
+              `${PAIRS}쌍을 ${seconds}초에 맞혔어요`,
+              `헛짚은 횟수 ${misses}번`,
+              `한자 카드 1장을 받았어요`,
+              isBest ? '새 최고 기록!' : `최고 기록 ${progress.bestOf(GAME_ID)}점`,
+            ],
+            actions: [
+              { label: '한 판 더', primary: true, onClick: () => nav(hunmumGame(grade, home)) },
+              { label: '정원으로', onClick: () => nav(home) },
+            ],
+          }),
+        )
+
+      root.append(
+        prizeModal({
+          char: prize[0],
+          title: `${hunEumOf(prize[0])} 카드`,
+          lines: [`${prize[0]} 카드를 받았어요`, `모두 ${cardStore.count(prize[0])}장`],
+          onConfirm: showResult,
         }),
       )
     }

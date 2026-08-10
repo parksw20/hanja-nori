@@ -21,7 +21,8 @@ import {
 } from '../src/data/grades'
 import { ALL_HANJA, ALL_WORDS } from '../src/data/words'
 import { EXAMS, buildQuestions } from '../src/exam'
-import { LEVELS, parseLevel, solve, rewardChar } from '../src/games/bloxorz'
+import { LEVELS, parseLevel, solve } from '../src/games/bloxorz'
+import { pickReward, pickRewards } from '../src/reward'
 import * as cards from '../src/cards'
 import { readFileSync } from 'node:fs'
 import { LADDER as GRADE_ORDER } from '../src/data/words'
@@ -305,8 +306,16 @@ check('서로 다른 카드 5장으로도 교환됨', cards.exchange(['日', '�
 check('교환 뒤 火 1장만 남음', cards.total() === 1 && cards.count('火') === 1)
 
 // 상으로 주는 한자는 반드시 배정한자 안에 있어야 한다
-const rewardOk = Array.from({ length: 200 }, () => rewardChar('6')).every((c) => seen.has(c))
-check('블록 퍼즐 보상 한자가 전부 배정한자 안에 있음', rewardOk)
+const rewardOk = Array.from({ length: 200 }, () => pickReward('6')).every((c) => seen.has(c))
+check('보상 한자가 전부 배정한자 안에 있음', rewardOk)
+
+// 여러 장을 줄 때는 서로 다른 글자여야 한다 (30단계면 30장)
+for (const n of [1, 15, 30]) {
+  const many = pickRewards('8', n)
+  check(`카드 ${n}장 보상이 정확히 ${n}장`, many.length === n, `${many.length}장`)
+  check(`카드 ${n}장 보상에 같은 글자 없음`, new Set(many).size === many.length)
+  check(`카드 ${n}장 보상이 8급 배정한자 안`, many.every((c) => HANJA_8.some((h) => h.char === c)))
+}
 
 cards.resetAll()
 

@@ -26,7 +26,12 @@ import * as progress from './progress'
 import * as sfx from './sfx'
 import { renderCharSvg, strokeCount } from './hanjaSvg'
 import * as strokes from './strokes'
-import { el, loadingBox, progressBar, resultCard, topBar, type Screen } from './ui'
+import * as cards from './cards'
+import { pickRewards } from './reward'
+import { cardsModal, el, loadingBox, progressBar, resultCard, topBar, type Screen } from './ui'
+
+/** 모의고사에 합격하면 주는 카드 수 */
+export const EXAM_PRIZE = 20
 
 export interface ExamSpec {
   id: GradeId
@@ -584,6 +589,10 @@ export const examScreen =
         }
       }, 260)
 
+      // 합격하면 카드를 넉넉히 준다 — 다음 급수 낱말을 바로 만들어 볼 수 있게
+      const prize = passed ? pickRewards(grade, EXAM_PRIZE) : []
+      if (prize.length) cards.addMany(prize)
+
       const next = LADDER[LADDER.indexOf(grade) + 1]
       const notes = el(
         'div',
@@ -596,26 +605,42 @@ export const examScreen =
           : [el('p', { class: 'ex-notes__row', text: '전부 맞혔어요!' })],
       )
 
-      root.replaceChildren(
-        topBar(`${spec.name} 모의고사`, () => nav(home)),
-        resultCard({
-          emoji: passed ? '🎖️' : '📚',
-          title: passed ? `합격!  ${score} / ${spec.total}` : `${score} / ${spec.total}`,
-          lines: [
-            `합격 기준 ${spec.pass}문항 (70%)`,
-            `걸린 시간 ${fmt(seconds * 1000)} / ${spec.minutes}분`,
-            passed
-              ? next
-                ? `${spec.name} 급수증을 받았어요 — ${EXAMS[next].name}이 열렸어요!`
-                : `${spec.name} 급수증을 받았어요`
-              : `${spec.pass - score}문항만 더 맞히면 합격이에요`,
-          ],
-          actions: [
-            { label: '다시 응시', primary: true, onClick: () => nav(examScreen(grade, home)) },
-            { label: '정원으로', onClick: () => nav(home) },
-          ],
+      const showResult = () =>
+        root.replaceChildren(
+          topBar(`${spec.name} 모의고사`, () => nav(home)),
+          resultCard({
+            emoji: passed ? '🎖️' : '📚',
+            title: passed ? `합격!  ${score} / ${spec.total}` : `${score} / ${spec.total}`,
+            lines: [
+              `합격 기준 ${spec.pass}문항 (70%)`,
+              `걸린 시간 ${fmt(seconds * 1000)} / ${spec.minutes}분`,
+              passed
+                ? next
+                  ? `${spec.name} 급수증을 받았어요 — ${EXAMS[next].name}이 열렸어요!`
+                  : `${spec.name} 급수증을 받았어요`
+                : `${spec.pass - score}문항만 더 맞히면 합격이에요`,
+              prize.length ? `한자 카드 ${prize.length}장을 받았어요` : '',
+            ].filter(Boolean),
+            actions: [
+              { label: '다시 응시', primary: true, onClick: () => nav(examScreen(grade, home)) },
+              { label: '정원으로', onClick: () => nav(home) },
+            ],
+          }),
+          notes,
+        )
+
+      if (!prize.length) {
+        showResult()
+        return
+      }
+      root.append(
+        cardsModal({
+          tada: '축하해요!',
+          chars: prize,
+          title: `한자 카드 ${prize.length}장`,
+          lines: [`${spec.name} 합격 선물이에요`],
+          onConfirm: showResult,
         }),
-        notes,
       )
     }
 

@@ -122,6 +122,51 @@ export function prizeModal(opts: {
   return overlay
 }
 
+/**
+ * 카드 여러 장을 한꺼번에 받을 때. 한 장이면 prizeModal이 더 낫다.
+ * 장수가 많아도 화면을 넘지 않게 격자로 깔고, 스스로 스크롤한다.
+ */
+export function cardsModal(opts: {
+  chars: string[]
+  title: string
+  lines: string[]
+  onConfirm: () => void
+  tada?: string
+}): HTMLElement {
+  const grid = el(
+    'div',
+    { class: 'hn-modal__grid' },
+    opts.chars.map((c, i) => {
+      const card = el('span', { class: 'hn-modal__mini', text: c })
+      // 한 장씩 차례로 튀어나오게 (많으면 간격을 좁혀 다 보이기 전에 지루하지 않도록)
+      card.style.animationDelay = `${Math.min(i * 60, 900)}ms`
+      return card
+    }),
+  )
+
+  const box = el('div', { class: 'hn-modal__box hn-modal__box--wide' }, [
+    el('div', { class: 'hn-modal__tada', text: opts.tada ?? '짜잔!' }),
+    grid,
+    el('h2', { class: 'hn-modal__title', text: opts.title }),
+    ...opts.lines.map((t) => el('p', { class: 'hn-modal__line', text: t })),
+    el('button', { class: 'hn-btn hn-btn--primary hn-modal__ok', type: 'button', text: '확인' }),
+  ])
+
+  const overlay = el('div', { class: 'hn-modal' }, [box])
+  function close() {
+    overlay.classList.add('hn-modal--out')
+    setTimeout(() => {
+      overlay.remove()
+      opts.onConfirm()
+    }, 180)
+  }
+  box.querySelector<HTMLButtonElement>('.hn-modal__ok')!.addEventListener('click', close)
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close()
+  })
+  return overlay
+}
+
 /** 획순처럼 나눠 받는 데이터를 기다리는 동안 */
 export function loadingBox(text = '불러오는 중…'): HTMLElement {
   return el('div', { class: 'hn-loading' }, [el('span', { class: 'hn-loading__dot' }), el('span', { text })])

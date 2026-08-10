@@ -11,14 +11,13 @@
  *   y     — (r,c)와 (r+1,c)에 세로로 누움
  */
 import type { GradeId } from '../data/types'
-import { wordsUpTo, hunEumOf } from '../data/words'
+import { pickRewards } from '../reward'
 import * as cards from '../cards'
 import * as progress from '../progress'
 import * as srs from '../srs'
-import * as tts from '../tts'
 import * as sfx from '../sfx'
 import { wordbookScreen } from '../wordbook'
-import { el, prizeModal, resultCard, toast, topBar, type Screen } from '../ui'
+import { cardsModal, el, resultCard, toast, topBar, type Screen } from '../ui'
 
 const GAME_ID = 'bloxorz'
 
@@ -178,18 +177,6 @@ export function solve(lv: Level): number | null {
   return null
 }
 
-/**
- * 상으로 줄 한자를 고른다.
- * 300자에서 아무거나 뽑으면 카드가 흩어져 낱말이 영영 안 모인다 →
- * **낱말을 먼저 고르고 그 안의 한 글자**를 준다. 그러면 카드가 저절로 낱말 주위에 뭉친다.
- */
-export function rewardChar(grade: GradeId): string {
-  const pool = wordsUpTo(grade)
-  const word = pool[Math.floor(Math.random() * pool.length)]
-  const chars = [...word.word]
-  return chars[Math.floor(Math.random() * chars.length)]
-}
-
 export const bloxorzGame =
   (grade: GradeId, home: Screen): Screen =>
   (root, nav) => {
@@ -235,20 +222,83 @@ export const bloxorzGame =
       return d
     }
 
-    function draw() {
-      // 기울이기만 하므로 가로 폭은 열 수에만 비례한다 (원근 때문에 뒷줄은 오히려 좁아진다)
+    /**
+     * 판을 뷰에 맞추는 변환. **판마다 한 번만** 정한다.
+     *
+     * 예전에는 굴릴 때마다 다시 쟀는데, 블록이 움직이면 차지하는 영역이 달라져서
+     * 판 전체가 조금씩 움직이고 커졌다 작아졌다 했다 — 굴리는 것보다 그게 더 눈에 띄었다.
+     * 이제 블록이 어디에 서 있어도 다 담기는 크기로 한 번 잡고 그대로 쓴다.
+     */
+    let fit = ''
+    let S = 60
+    let T = 10
+
+    function layoutFit() {
       const avail = view.clientWidth || 360
-      const S = Math.max(30, Math.min(96, Math.floor((avail - 20) / lv.cols)))
-      const T = Math.round(S * SLAB)
+      S = Math.max(30, Math.min(96, Math.floor((avail - 20) / lv.cols)))
+      T = Math.round(S * SLAB)
       const W = lv.cols * S
       const H = lv.rows * S
-
       scene.style.width = `${W}px`
       scene.style.height = `${H}px`
-      // 기울여 놓은 바닥의 세로 투영 + 서 있는 블록(2칸)이 위로 뻗는 높이
       const tiltRad = (TILT * Math.PI) / 180
       view.style.height = `${Math.round(H * Math.cos(tiltRad) + 2 * S * Math.sin(tiltRad) + 36)}px`
 
+      // 바닥 + 네 귀퉁이에 세워 둔 유령 블록 = 어떤 자세·위치에서도 넘지 않는 최대 영역
+      const probe: HTMLElement[] = []
+      for (let r = 0; r < lv.rows; r++) {
+        for (let c = 0; c < lv.cols; c++) {
+          if (lv.grid[r][c] === 0) continue
+          probe.push(face('bx-face--floor', S, S, `translate3d(${c * S}px, ${r * S}px, 0px)`))
+          probe.push(face('bx-face--slab', S, T, `translate3d(${c * S}px, ${(r + 1) * S}px, 0px) rotateX(-90deg)`))
+        }
+      }
+      const corners: [number, number][] = [
+        [0, 0],
+        [0, lv.cols - 1],
+        [lv.rows - 1, 0],
+        [lv.rows - 1, lv.cols - 1],
+      ]
+      for (const [r, c] of corners) {
+        const x = c * S
+        const y = r * S
+        probe.push(face('bx-face--btop', S, S, `translate3d(${x}px, ${y}px, ${2 * S}px)`))
+        probe.push(face('bx-face--bfront', S, 2 * S, `translate3d(${x}px, ${y + S}px, ${2 * S}px) rotateX(-90deg)`))
+      }
+      scene.replaceChildren(...probe)
+
+      const vb = view.getBoundingClientRect()
+      const bbox = () => {
+        const rs = [...scene.children].map((c) => (c as HTMLElement).getBoundingClientRect())
+        return {
+          l: Math.min(...rs.map((r) => r.left)),
+          r: Math.max(...rs.map((r) => r.right)),
+          t: Math.min(...rs.map((r) => r.top)),
+          b: Math.max(...rs.map((r) => r.bottom)),
+        }
+      }
+      const pad = 16
+      const cx = vb.left + vb.width / 2
+      const cy = vb.top + vb.height / 2
+      let k = 1
+      let dx = 0
+      let dy = 0
+      for (let i = 0; i < 5; i++) {
+        scene.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${k.toFixed(4)}) rotateX(${TILT}deg)`
+        const bb = bbox()
+        const kk = Math.min(1, (vb.width - pad) / (bb.r - bb.l), (vb.height - pad) / (bb.b - bb.t))
+        const ex = cx - (bb.l + bb.r) / 2
+        const ey = cy - (bb.t + bb.b) / 2
+        if (kk > 0.999 && Math.abs(ex) < 0.5 && Math.abs(ey) < 0.5) break
+        k *= kk
+        dx += ex
+        dy += ey
+      }
+      fit = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${k.toFixed(4)}) rotateX(${TILT}deg)`
+      scene.style.transform = fit
+    }
+
+    function draw() {
       const parts: HTMLElement[] = []
 
       // 바닥 — 윗면 + 카메라 쪽 두 옆면(두께)
@@ -289,50 +339,8 @@ export const bloxorzGame =
         block.o === 'stand' ? '서 있음' : '누움'
       }`
 
-      // 블록이 서면 카메라를 살짝 낮춰 키가 더 드러나게 한다
-      const tilt = block.o === 'stand' ? TILT - 5 : TILT
-
-      /*
-        판이 뷰에 딱 맞게 자동 보정.
-
-        원근이 걸려 있으면 "가로 = 열수 × 칸크기"라는 계산이 안 맞는다 — 앞줄이 확대되기 때문.
-        게다가 `scale()`은 원근 **안쪽**에서 걸려서 깊이까지 같이 줄인다. 즉 한 번 재서 한 번
-        줄이면 딱 안 맞는다(비선형). 그래서 **줄이고 다시 재기를 몇 번 반복해** 수렴시킨다.
-        마지막 이동(translate)은 원근 바깥의 순수 화면 이동이라 한 번에 정확히 가운데로 간다.
-      */
-      const vb = view.getBoundingClientRect()
-      if (vb.width > 0 && parts.length) {
-        const bbox = () => {
-          const rs = [...scene.children].map((c) => (c as HTMLElement).getBoundingClientRect())
-          return {
-            l: Math.min(...rs.map((r) => r.left)),
-            r: Math.max(...rs.map((r) => r.right)),
-            t: Math.min(...rs.map((r) => r.top)),
-            b: Math.max(...rs.map((r) => r.bottom)),
-          }
-        }
-        // translate도 원근 안쪽이라 깊이에 따라 화면 이동량이 달라진다 → 크기와 위치를 같이 수렴시킨다
-        const pad = 16
-        const cx = vb.left + vb.width / 2
-        const cy = vb.top + vb.height / 2
-        let k = 1
-        let dx = 0
-        let dy = 0
-        for (let i = 0; i < 5; i++) {
-          scene.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${k.toFixed(4)}) rotateX(${tilt}deg)`
-          const bb = bbox()
-          const kk = Math.min(1, (vb.width - pad) / (bb.r - bb.l), (vb.height - pad) / (bb.b - bb.t))
-          const ex = cx - (bb.l + bb.r) / 2
-          const ey = cy - (bb.t + bb.b) / 2
-          if (kk > 0.999 && Math.abs(ex) < 0.5 && Math.abs(ey) < 0.5) break
-          k *= kk
-          dx += ex
-          dy += ey
-        }
-        scene.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${k.toFixed(4)}) rotateX(${tilt}deg)`
-      } else {
-        scene.style.transform = `rotateX(${tilt}deg)`
-      }
+      // 카메라는 판마다 정해 둔 그대로 — 굴릴 때 판이 흔들리지 않는다
+      scene.style.transform = fit
     }
 
     /** 열린 단계 안에서만 돌린다 */
@@ -342,15 +350,24 @@ export const bloxorzGame =
       block = { ...lv.start }
       moves = 0
       done = false
+      layoutFit()
       draw()
     }
 
     function win() {
       done = true
-      const char = rewardChar(grade)
-      cards.add(char)
-      // 카드로 받은 글자도 배운 것으로 친다 — 정원에 싹이 튼다
-      if (srs.isNew(char)) srs.review(char, 'right')
+      /**
+       * 카드는 **처음 깨는 단계에만** 준다. 쉬운 단계를 반복해 카드를 찍어내면
+       * 단어장이 의미를 잃는다. 대신 단계가 올라갈수록 단계 수만큼 준다
+       * (15단계를 처음 깨면 서로 다른 한자 15장).
+       */
+      const firstTime = levelNo + 1 > cleared
+      const prize = firstTime ? pickRewards(grade, levelNo + 1) : []
+      if (prize.length) {
+        cards.addMany(prize)
+        // 카드로 받은 글자도 배운 것으로 친다 — 정원에 싹이 튼다
+        for (const c of prize) if (srs.isNew(c)) srs.review(c, 'right')
+      }
       progress.recordBest(`${GAME_ID}.level`, levelNo + 1)
       progress.recordBest(GAME_ID, Math.max(0, 100 - moves * 2 - falls * 10))
 
@@ -365,7 +382,7 @@ export const bloxorzGame =
             lines: [
               `${moves}번 만에 깼어요`,
               falls ? `${falls}번 떨어졌어요` : '한 번도 안 떨어졌어요!',
-              `${char} 카드를 받았어요 (모두 ${cards.count(char)}장)`,
+              prize.length ? `한자 카드 ${prize.length}장을 받았어요` : '이미 깬 단계라 카드는 없어요',
               makeable.length ? `단어장에서 ${makeable.length}개 낱말을 만들 수 있어요` : '',
             ].filter(Boolean),
             actions: [
@@ -377,14 +394,19 @@ export const bloxorzGame =
         )
       }
 
+      if (!prize.length) {
+        sfx.submit()
+        showResult()
+        return
+      }
+
       // 결과 화면에 슬쩍 끼워 넣으면 카드를 받은 줄 모른다 — 짜잔 하고 덮어서 보여 준다
       sfx.fanfare()
-      tts.speak(hunEumOf(char))
       root.append(
-        prizeModal({
-          char,
-          title: `${hunEumOf(char)} 카드`,
-          lines: [`${char} 카드를 받았어요`, `모두 ${cards.count(char)}장`],
+        cardsModal({
+          chars: prize,
+          title: `한자 카드 ${prize.length}장`,
+          lines: [`${levelNo + 1}단계를 처음 깼어요!`],
           onConfirm: showResult,
         }),
       )
@@ -433,7 +455,10 @@ export const bloxorzGame =
     }
     window.addEventListener('keydown', onKey)
     // 화면을 돌리거나 창을 줄이면 칸 크기를 다시 잡아야 판이 안 잘린다
-    const onResize = () => draw()
+    const onResize = () => {
+      layoutFit()
+      draw()
+    }
     window.addEventListener('resize', onResize)
 
     root.append(
@@ -457,6 +482,7 @@ export const bloxorzGame =
           : el('p', { class: 'bx-locked', text: '이 단계를 깨야 다음 단계가 열려요' }),
       ]),
     )
+    layoutFit()
     draw()
 
     return () => {
