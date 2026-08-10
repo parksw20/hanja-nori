@@ -167,6 +167,62 @@ export function cardsModal(opts: {
   return overlay
 }
 
+/**
+ * 결과를 화면 위에 덮어서 보여 준다.
+ *
+ * 화면을 통째로 갈아치우면 하던 놀이가 사라져 흐름이 끊긴다. 뒤에 판을 그대로 두고
+ * 그 위에 띄운다. **이어서 할 것 하나만 크게**, 나머지는 아래에 작게 — 아이가 고민 없이
+ * 큰 버튼만 누르면 계속 놀 수 있게.
+ */
+export function resultModal(opts: {
+  emoji: string
+  title: string
+  lines: string[]
+  primary: { label: string; onClick: () => void }
+  secondary?: { label: string; onClick: () => void }[]
+}): HTMLElement {
+  const overlay = el('div', { class: 'hn-modal' })
+
+  function close(then: () => void) {
+    overlay.classList.add('hn-modal--out')
+    setTimeout(() => {
+      overlay.remove()
+      then()
+    }, 180)
+  }
+
+  const box = el('div', { class: 'hn-modal__box hn-result-modal' }, [
+    el('div', { class: 'hn-result__emoji', text: opts.emoji }),
+    el('h2', { class: 'hn-result__title', text: opts.title }),
+    ...opts.lines.map((t) => el('p', { class: 'hn-result__line', text: t })),
+    el('button', {
+      class: 'hn-btn hn-btn--primary hn-result-modal__go',
+      type: 'button',
+      text: opts.primary.label,
+      onclick: () => close(opts.primary.onClick),
+    }),
+    ...(opts.secondary?.length
+      ? [
+          el(
+            'div',
+            { class: 'hn-result-modal__more' },
+            opts.secondary.map((a) =>
+              el('button', {
+                class: 'hn-result-modal__small',
+                type: 'button',
+                text: a.label,
+                onclick: () => close(a.onClick),
+              }),
+            ),
+          ),
+        ]
+      : []),
+  ])
+
+  overlay.append(box)
+  return overlay
+}
+
 /** 획순처럼 나눠 받는 데이터를 기다리는 동안 */
 export function loadingBox(text = '불러오는 중…'): HTMLElement {
   return el('div', { class: 'hn-loading' }, [el('span', { class: 'hn-loading__dot' }), el('span', { text })])

@@ -17,7 +17,7 @@ import * as progress from '../progress'
 import * as srs from '../srs'
 import * as sfx from '../sfx'
 import { wordbookScreen } from '../wordbook'
-import { cardsModal, el, resultCard, toast, topBar, type Screen } from '../ui'
+import { cardsModal, el, resultModal, toast, topBar, type Screen } from '../ui'
 
 const GAME_ID = 'bloxorz'
 
@@ -205,6 +205,8 @@ export const bloxorzGame =
     view.append(scene)
     /** 한 번 굴리는 데 걸리는 시간(ms) */
     const ROLL_MS = 180
+    /** 판 밖으로 떨어지는 데 걸리는 시간(ms) — 넘어가고 + 떨어지고 */
+    const FALL_MS = 520
     /** 굴러가는 중에는 다음 입력을 받지 않는다 (겹치면 자세가 꼬인다) */
     let rolling = false
     /** 지금 도는 굴림 애니메이션 (화면을 떠날 때 정리한다) */
@@ -381,16 +383,52 @@ export const bloxorzGame =
      *   오른쪽 → 오른쪽 아래 모서리에서 rotateY(+90)   왼쪽 → 왼쪽 아래 모서리에서 rotateY(-90)
      *   아래   → 앞쪽 아래 모서리에서 rotateX(-90)     위   → 뒤쪽 아래 모서리에서 rotateX(+90)
      */
-    function animateRoll(from: Block, dir: Dir, onEnd: () => void) {
+    /** 넘어가는 모서리와 그때의 회전 */
+    function pivotOf(from: Block, dir: Dir) {
       const { w, d, x, y } = geo(from)
-      const pivot =
-        dir === 'right'
-          ? { o: `${x + w}px ${y}px 0px`, t: 'rotateY(90deg)' }
-          : dir === 'left'
-            ? { o: `${x}px ${y}px 0px`, t: 'rotateY(-90deg)' }
-            : dir === 'down'
-              ? { o: `${x}px ${y + d}px 0px`, t: 'rotateX(-90deg)' }
-              : { o: `${x}px ${y}px 0px`, t: 'rotateX(90deg)' }
+      return dir === 'right'
+        ? { o: `${x + w}px ${y}px 0px`, t: 'rotateY(90deg)' }
+        : dir === 'left'
+          ? { o: `${x}px ${y}px 0px`, t: 'rotateY(-90deg)' }
+          : dir === 'down'
+            ? { o: `${x}px ${y + d}px 0px`, t: 'rotateX(-90deg)' }
+            : { o: `${x}px ${y}px 0px`, t: 'rotateX(90deg)' }
+    }
+
+    /**
+     * 판 밖으로 넘어가 떨어지는 모션.
+     * 모서리에서 넘어간 다음 **아래로 가속하며** 사라진다.
+     * translate를 회전보다 **왼쪽**에 두어야 판 좌표계(위가 +Z)에서 아래로 내려간다 —
+     * 오른쪽에 두면 회전된 블록의 축을 따라가서 엉뚱한 방향으로 날아간다.
+     */
+    function animateFall(from: Block, dir: Dir, onEnd: () => void) {
+      const pivot = pivotOf(from, dir)
+      drawBlock(from)
+      blockGroup.style.transformOrigin = pivot.o
+      blockGroup.style.transform = 'none'
+
+      const anim = blockGroup.animate(
+        [
+          { transform: 'none', opacity: 1, offset: 0, easing: 'cubic-bezier(0.4, 0, 1, 1)' },
+          { transform: pivot.t, opacity: 1, offset: 0.36, easing: 'cubic-bezier(0.5, 0, 1, 1)' },
+          { transform: `translate3d(0px, 0px, -900px) ${pivot.t}`, opacity: 0, offset: 1 },
+        ],
+        { duration: FALL_MS, fill: 'forwards' },
+      )
+      rollAnim = anim
+      const finish = () => {
+        anim.cancel()
+        if (rollAnim === anim) rollAnim = null
+        onEnd()
+      }
+      anim.addEventListener('finish', finish)
+      setTimeout(() => {
+        if (rollAnim === anim) finish()
+      }, FALL_MS + 120)
+    }
+
+    function animateRoll(from: Block, dir: Dir, onEnd: () => void) {
+      const pivot = pivotOf(from, dir)
 
       drawBlock(from)
       blockGroup.style.transformOrigin = pivot.o
@@ -450,10 +488,10 @@ export const bloxorzGame =
 
       const makeable = cards.completableWords(grade)
 
+      // 화면을 갈아치우지 않고 판 위에 덮는다 — 하던 놀이가 그대로 뒤에 남아 흐름이 안 끊긴다
       function showResult() {
-        root.replaceChildren(
-          topBar('블록 굴리기', () => nav(home)),
-          resultCard({
+        root.append(
+          resultModal({
             emoji: '🎉',
             title: `${levelNo + 1}단계 통과!`,
             lines: [
@@ -462,8 +500,8 @@ export const bloxorzGame =
               prize.length ? `한자 카드 ${prize.length}장을 받았어요` : '이미 깬 단계라 카드는 없어요',
               makeable.length ? `단어장에서 ${makeable.length}개 낱말을 만들 수 있어요` : '',
             ].filter(Boolean),
-            actions: [
-              { label: '다음 단계', primary: true, onClick: () => nav(bloxorzGame(grade, home)) },
+            primary: { label: '다음 단계 ▶', onClick: () => nav(bloxorzGame(grade, home)) },
+            secondary: [
               { label: '단어장 보기', onClick: () => nav(wordbookScreen(grade, home)) },
               { label: '정원으로', onClick: () => nav(home) },
             ],
@@ -500,15 +538,11 @@ export const bloxorzGame =
         falls++
         rolling = true
         sfx.soft()
-        toast(root, '앗, 떨어졌어요!', 'bad')
-        blockGroup.classList.add('bx-block--fall')
-        animateRoll(from, d, () => {
-          blockGroup.classList.remove('bx-block--fall')
+        animateFall(from, d, () => {
           block = { ...lv.start }
           moves = 0
           rolling = false
-          view.classList.add('bx-view--fall')
-          setTimeout(() => view.classList.remove('bx-view--fall'), 400)
+          toast(root, '앗, 떨어졌어요!', 'bad')
           draw()
         })
         return

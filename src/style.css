@@ -292,6 +292,40 @@ body {
   min-width: 140px;
 }
 
+/* 결과 모달 — 이어서 할 것 하나만 크게, 나머지는 아래 작게 */
+.hn-result-modal {
+  border-color: var(--hn-line);
+  background: linear-gradient(160deg, #232c4e, var(--hn-card));
+  /* 글자 길이에 맡기면 상자가 쪼그라들어 「다음 단계」가 작아진다 — 폭을 못 박는다 */
+  width: min(92vw, 380px);
+}
+
+.hn-result-modal__go {
+  margin-top: 14px;
+  width: 100%;
+  padding: 18px 20px;
+  font-size: 1.5rem;
+  border-radius: 16px;
+}
+
+.hn-result-modal__more {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.hn-result-modal__small {
+  background: none;
+  border: none;
+  color: var(--hn-ink-dim);
+  font-size: 0.9rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+
 .hn-loading {
   display: flex;
   align-items: center;
@@ -1112,11 +1146,6 @@ body {
   transform-style: preserve-3d;
 }
 
-/* 떨어질 때는 굴러 넘어가면서 사라진다 */
-.bx-block--fall {
-  opacity: 0;
-  transition: opacity 0.18s ease 0.06s;
-}
 
 /* 바닥 윗면 */
 .bx-face--floor {
