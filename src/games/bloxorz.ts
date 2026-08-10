@@ -17,7 +17,7 @@ import * as progress from '../progress'
 import * as srs from '../srs'
 import * as sfx from '../sfx'
 import { wordbookScreen } from '../wordbook'
-import { cardsModal, el, resultModal, toast, topBar, type Screen } from '../ui'
+import { cardsModal, el, resultModal, toast, topAction, topBar, type Screen } from '../ui'
 
 const GAME_ID = 'bloxorz'
 
@@ -470,6 +470,10 @@ export const bloxorzGame =
 
     /** 열린 단계 안에서만 돌린다 */
     function cycleLevel() {
+      // 굴리는 중에 판을 갈아치우면 끝난 애니메이션이 옛 판 좌표로 블록을 되돌린다
+      if (rolling) return
+      rollAnim?.cancel()
+      rollAnim = null
       levelNo = (levelNo + 1) % unlocked
       lv = parseLevel(LEVELS[levelNo])
       block = { ...lv.start }
@@ -595,24 +599,30 @@ export const bloxorzGame =
     }
     window.addEventListener('resize', onResize)
 
+    /*
+      단계 바꾸기는 **상단 바 오른쪽**에 둔다. 아래에 두면 방향키 바로 밑이라
+      굴리다가 잘못 눌러 판이 바뀌고, 판마다 자리도 달라 보였다.
+      열린 단계가 하나뿐이면 고를 것이 없으니 버튼도 없다.
+    */
     root.append(
-      topBar('블록 굴리기', () => nav(home)),
+      topBar(
+        '블록 굴리기',
+        () => nav(home),
+        unlocked > 1
+          ? topAction('🔁 다시하기', () => {
+              sfx.tap()
+              cycleLevel()
+              toast(root, `${levelNo + 1}단계`, 'good')
+            })
+          : '',
+      ),
       el('div', { class: 'bx-wrap' }, [
         status,
         view,
         hint,
         pad,
-        // 열린 단계가 하나뿐이면 고를 것이 없으니 버튼도 없다
         unlocked > 1
-          ? el('button', {
-              class: 'hn-btn bx-skip',
-              type: 'button',
-              text: `깬 단계 다시하기 (1~${unlocked - 1}단계)`,
-              onclick: () => {
-                sfx.tap()
-                cycleLevel()
-              },
-            })
+          ? el('p', { class: 'bx-locked', text: `깬 단계는 위 🔁로 다시 할 수 있어요 (1~${unlocked}단계)` })
           : el('p', { class: 'bx-locked', text: '이 단계를 깨야 다음 단계가 열려요' }),
       ]),
     )

@@ -1226,11 +1226,6 @@ body {
 .bx-key--down { grid-area: 2 / 2; }
 .bx-key--right { grid-area: 2 / 3; }
 
-.bx-skip {
-  font-size: 0.95rem;
-  padding: 8px 16px;
-}
-
 .bx-locked {
   margin: 0;
   font-size: 0.95rem;
