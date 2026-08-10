@@ -37,17 +37,21 @@ export const EXAM_PRIZE_BASE = 10
 export const EXAM_PRIZE_BONUS = 10
 
 /**
- * 합격 상품 = 기본 10장 + 점수만큼의 덤(만점이면 10장).
+ * 합격 상품 = 기본 10장 + 합격선 위로 얼마나 올라갔는지에 따른 덤(만점이면 10장).
  *
  * 늘 20장을 주면 70%로 겨우 붙으나 만점을 맞으나 똑같아서 더 맞힐 이유가 없다.
- * 합격선(70%)에서 17장, 만점에서 20장 — 잘 볼수록 눈에 보이게 는다.
  *
- * 올림이 아니라 **버림**이다. 반올림하면 50문항 중 48문항(96%)만 맞혀도 만점과 똑같은
- * 20장이 나와서 "만점 기준"이라는 말이 무색해진다.
+ * 덤은 **0점이 아니라 합격선부터** 나눈다. 0점부터 재면 합격선(70%)만 넘겨도 이미
+ * 덤의 7할을 받아 버려서, 정작 아이가 애쓰는 구간(합격선~만점)에서는 3장밖에 안 는다.
+ * 합격선에서 0장, 만점에서 10장 — 열 칸을 온전히 그 구간에 쓴다.
+ *
+ * 올림이 아니라 **버림**이다. 반올림하면 만점을 안 맞아도 만점과 같은 20장이 나와서
+ * "만점 기준"이라는 말이 무색해진다.
  */
-export function examPrizeCount(score: number, total: number): number {
-  if (total <= 0) return EXAM_PRIZE_BASE
-  const ratio = Math.max(0, Math.min(1, score / total))
+export function examPrizeCount(score: number, total: number, pass: number): number {
+  const span = total - pass
+  if (span <= 0) return EXAM_PRIZE_BASE + EXAM_PRIZE_BONUS
+  const ratio = Math.max(0, Math.min(1, (score - pass) / span))
   return EXAM_PRIZE_BASE + Math.floor(EXAM_PRIZE_BONUS * ratio)
 }
 
@@ -608,7 +612,7 @@ export const examScreen =
       }, 260)
 
       // 합격하면 카드를 넉넉히 준다 — 다음 급수 낱말을 바로 만들어 볼 수 있게
-      const prize = passed ? pickRewards(grade, examPrizeCount(score, spec.total)) : []
+      const prize = passed ? pickRewards(grade, examPrizeCount(score, spec.total, spec.pass)) : []
       if (prize.length) cards.addMany(prize)
 
       const next = LADDER[LADDER.indexOf(grade) + 1]
@@ -638,7 +642,7 @@ export const examScreen =
                   : `${spec.name} 급수증을 받았어요`
                 : `${spec.pass - score}문항만 더 맞히면 합격이에요`,
               prize.length
-                ? `한자 카드 ${prize.length}장을 받았어요 (기본 ${EXAM_PRIZE_BASE}장 + 점수만큼 ${
+                ? `한자 카드 ${prize.length}장을 받았어요 (기본 ${EXAM_PRIZE_BASE}장 + 합격선 위로 ${
                     prize.length - EXAM_PRIZE_BASE
                   }장)`
                 : '',

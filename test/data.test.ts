@@ -237,27 +237,30 @@ for (const o of OFFICIAL) {
   check(`${spec.name} 필순 문제에 대체 자형 글자가 안 나옴`, pilsunBad.length === 0, pilsunBad.map((q) => q.stem).join(' '))
 }
 
-// 합격 상품 = 기본 10장 + 점수만큼의 덤(만점 10장).
+// 합격 상품 = 기본 10장 + 합격선~만점 구간에 나눈 덤 10장.
 // 늘 같은 장수를 주면 겨우 붙으나 만점을 맞으나 똑같아서 더 맞힐 이유가 없다.
+// 덤을 0점부터 재면 합격선만 넘겨도 7할을 받아 버려 정작 애쓰는 구간이 밋밋해진다.
 for (const g of GRADE_ORDER) {
   const spec = EXAMS[g]
-  const 합격선 = examPrizeCount(spec.pass, spec.total)
-  const 만점 = examPrizeCount(spec.total, spec.total)
+  const at = (score: number) => examPrizeCount(score, spec.total, spec.pass)
+  const 만점 = at(spec.total)
+  check(`${spec.name} 만점 상품이 ${EXAM_PRIZE_BASE + EXAM_PRIZE_BONUS}장`, 만점 === EXAM_PRIZE_BASE + EXAM_PRIZE_BONUS, `${만점}장`)
+  check(`${spec.name} 합격선 상품이 기본 ${EXAM_PRIZE_BASE}장`, at(spec.pass) === EXAM_PRIZE_BASE, `${at(spec.pass)}장`)
+  // 한 문항이라도 틀리면 만점 상품이 아니어야 한다 (반올림하면 만점이 아닌데도 만점 대접을 받았다)
+  check(`${spec.name} 한 문항 틀리면 만점보다 적음`, at(spec.total - 1) < 만점, `${at(spec.total - 1)}장 / 만점 ${만점}장`)
+  // 합격선과 만점의 한가운데면 덤도 절반쯤
+  const 중간 = at(Math.round((spec.pass + spec.total) / 2))
   check(
-    `${spec.name} 만점 상품이 ${EXAM_PRIZE_BASE + EXAM_PRIZE_BONUS}장`,
-    만점 === EXAM_PRIZE_BASE + EXAM_PRIZE_BONUS,
-    `${만점}장`,
+    `${spec.name} 합격선과 만점 사이면 덤도 중간`,
+    중간 > EXAM_PRIZE_BASE && 중간 < 만점,
+    `${중간}장 (합격선 ${EXAM_PRIZE_BASE} / 만점 ${만점})`,
   )
-  check(
-    `${spec.name} 합격선 상품이 기본 이상 만점 미만`,
-    합격선 >= EXAM_PRIZE_BASE && 합격선 < 만점,
-    `합격선 ${합격선}장 / 만점 ${만점}장`,
-  )
-  // 한 문항이라도 틀리면 만점 상품이 아니어야 한다 (반올림하면 96%도 만점 대접을 받았다)
-  const 하나틀림 = examPrizeCount(spec.total - 1, spec.total)
-  check(`${spec.name} 한 문항 틀리면 만점보다 적음`, 하나틀림 < 만점, `${하나틀림}장 / 만점 ${만점}장`)
+  // 점수가 오르는데 상품이 줄면 안 된다
+  let 역전 = ''
+  for (let s = spec.pass; s < spec.total; s++) if (at(s + 1) < at(s)) 역전 += `${s}→${s + 1} `
+  check(`${spec.name} 점수가 오르면 상품도 안 줄어듦`, !역전, 역전)
 }
-check('0점이면 기본만', examPrizeCount(0, 100) === EXAM_PRIZE_BASE, `${examPrizeCount(0, 100)}장`)
+check('합격선 아래는 기본만', examPrizeCount(0, 100, 70) === EXAM_PRIZE_BASE, `${examPrizeCount(0, 100, 70)}장`)
 
 // ── 5. 블록 굴리기 레벨 ──────────────────────────────────────────
 // 손으로 그린 판은 풀 수 없는 것이 섞인다 (실제로 처음 5단계가 그랬다). BFS로 전수 검사.
