@@ -207,6 +207,8 @@ export const bloxorzGame =
     const ROLL_MS = 180
     /** 굴러가는 중에는 다음 입력을 받지 않는다 (겹치면 자세가 꼬인다) */
     let rolling = false
+    /** 지금 도는 굴림 애니메이션 (화면을 떠날 때 정리한다) */
+    let rollAnim: Animation | null = null
     const status = el('span', { class: 'bx-status' })
     const hint = el('p', { class: 'bx-hint', text: '블록을 굴려 노란 구멍에 세워서 빠뜨려요' })
 
@@ -240,15 +242,21 @@ export const bloxorzGame =
     let T = 10
 
     function layoutFit() {
-      const avail = view.clientWidth || 360
-      S = Math.max(30, Math.min(96, Math.floor((avail - 20) / lv.cols)))
-      T = Math.round(S * SLAB)
-      const W = lv.cols * S
-      const H = lv.rows * S
-      scene.style.width = `${W}px`
-      scene.style.height = `${H}px`
+      /*
+        뷰 높이는 CSS가 고정한다 — 판 크기에 따라 높이가 바뀌면 아래 방향키가 매번
+        다른 자리로 옮겨 다닌다(실제로 1단계와 3단계에서 버튼 위치가 달랐다).
+        대신 **칸 크기를 가로·세로 양쪽에 맞춰** 잡아 작은 판은 크게, 큰 판은 작게 그린다.
+      */
+      const availW = view.clientWidth || 360
+      const availH = view.clientHeight || 320
       const tiltRad = (TILT * Math.PI) / 180
-      view.style.height = `${Math.round(H * Math.cos(tiltRad) + 2 * S * Math.sin(tiltRad) + 36)}px`
+      const byWidth = (availW - 20) / lv.cols
+      // 기울인 바닥의 세로 투영 + 서 있는 블록(2칸)이 위로 뻗는 높이
+      const byHeight = (availH - 24) / (lv.rows * Math.cos(tiltRad) + 2 * Math.sin(tiltRad))
+      S = Math.max(26, Math.min(120, Math.floor(Math.min(byWidth, byHeight))))
+      T = Math.round(S * SLAB)
+      scene.style.width = `${lv.cols * S}px`
+      scene.style.height = `${lv.rows * S}px`
 
       // 바닥 + 네 귀퉁이에 세워 둔 유령 블록 = 어떤 자세·위치에서도 넘지 않는 최대 영역
       const probe: HTMLElement[] = []
@@ -354,7 +362,6 @@ export const bloxorzGame =
 
     function draw() {
       drawBlock(block)
-      blockGroup.style.transition = 'none'
       blockGroup.style.transform = 'none'
       // 전체 단계 수를 같이 보여 준다 — 안 그러면 "여기서 안 넘어가나?" 싶어진다
       const 새단계 = levelNo + 1 === unlocked && cleared < LEVELS.length
@@ -386,14 +393,31 @@ export const bloxorzGame =
               : { o: `${x}px ${y}px 0px`, t: 'rotateX(90deg)' }
 
       drawBlock(from)
-      blockGroup.style.transition = 'none'
       blockGroup.style.transformOrigin = pivot.o
       blockGroup.style.transform = 'none'
-      // 방금 넣은 값을 브라우저가 반영하게 한 뒤에 전환을 걸어야 애니메이션이 산다
-      void blockGroup.offsetWidth
-      blockGroup.style.transition = `transform ${ROLL_MS}ms cubic-bezier(0.33, 0, 0.3, 1)`
-      blockGroup.style.transform = pivot.t
-      setTimeout(onEnd, ROLL_MS)
+
+      /*
+        CSS transition 대신 Web Animations API를 쓴다.
+        transition은 "none을 넣고 → 리플로를 강제하고 → 다시 넣는" 순서에 기대는데,
+        그 순서가 한 프레임에 합쳐지면 전환이 통째로 사라져 순간이동처럼 보인다(실제로 그랬다).
+        animate()는 그런 타이밍 의존이 없고, currentTime으로 중간 상태를 직접 확인할 수도 있다.
+      */
+      const anim = blockGroup.animate([{ transform: 'none' }, { transform: pivot.t }], {
+        duration: ROLL_MS,
+        easing: 'cubic-bezier(0.33, 0, 0.3, 1)',
+        fill: 'forwards',
+      })
+      rollAnim = anim
+      const finish = () => {
+        anim.cancel()
+        if (rollAnim === anim) rollAnim = null
+        onEnd()
+      }
+      anim.addEventListener('finish', finish)
+      // 탭이 뒤에 있으면 애니메이션이 멈춰 finish가 안 온다 — 게임은 그래도 이어져야 한다
+      setTimeout(() => {
+        if (rollAnim === anim) finish()
+      }, ROLL_MS + 120)
     }
 
     /** 열린 단계 안에서만 돌린다 */
@@ -554,5 +578,7 @@ export const bloxorzGame =
     return () => {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('resize', onResize)
+      rollAnim?.cancel()
+      rollAnim = null
     }
   }

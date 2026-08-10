@@ -1060,6 +1060,8 @@ body {
   place-items: center;
   /* vw로 잡으면 #app 안쪽 여백을 모르고 1~2px 삐져나온다 — 부모 기준으로 잡는다 */
   width: min(100%, 640px);
+  /* 높이 고정 — 판이 커지고 작아져도 아래 방향키가 제자리에 있어야 한다 */
+  height: min(48vh, 400px);
   border-radius: var(--hn-radius);
   border: 1px solid var(--hn-line);
   background: radial-gradient(120% 90% at 50% 25%, #2b3766, #1a2244);
