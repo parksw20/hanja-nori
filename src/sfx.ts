@@ -125,6 +125,23 @@ export function applause(delay = 0): void {
   }
 }
 
+/**
+ * 한자 카드를 받을 때 — 반짝이며 쏟아지는 소리.
+ *
+ * 합격 팡파르(fanfare)와는 다르게 들려야 한다. 팡파르는 "해냈다", 이건 "받았다"다.
+ * 짧게 올라가는 세 음 뒤에 높은 반짝임을 장수만큼 흩뿌린다 — 많이 받을수록 오래 반짝인다.
+ */
+export function card(n = 1): void {
+  tone(784, 0.1, { gain: 0.1 }) // 솔
+  tone(1047, 0.12, { delay: 0.07 }) // 높은 도
+  tone(1319, 0.2, { delay: 0.15 }) // 높은 미
+  // 30장을 받아도 반짝임이 30번 울리면 시끄럽다 — 여섯 번에서 끊는다
+  const sparkles = Math.min(Math.max(n, 1), 6)
+  for (let i = 0; i < sparkles; i++) {
+    tone(1568 + i * 120, 0.09, { delay: 0.24 + i * 0.07, gain: 0.05, type: 'triangle' })
+  }
+}
+
 /** 합격 */
 export function fanfare(): void {
   tone(523, 0.14) // 도

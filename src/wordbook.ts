@@ -131,6 +131,8 @@ export const buildScreen =
       tts.speak(w.reading)
       root.append(
         prizeModal({
+          // 이미 팡파르가 울렸다 — 카드 소리까지 겹치면 뭉개진다
+          silent: true,
           tada: '빠밤!',
           char: w.word,
           title: w.reading,

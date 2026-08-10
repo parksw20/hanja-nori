@@ -1,5 +1,7 @@
 /** DOM 조립 헬퍼 + 화면 전환. 프레임워크 없이 간다 (번들 작게, 아이 기기에서 가볍게). */
 
+import * as sfx from './sfx'
+
 type Attrs = Record<string, string | number | boolean | ((e: Event) => void)>
 
 export function el<K extends keyof HTMLElementTagNameMap>(
@@ -89,6 +91,8 @@ export function prizeModal(opts: {
   onConfirm: () => void
   /** 외침 — 기본 '짜잔!' */
   tada?: string
+  /** 카드 받는 소리를 내지 않는다 (낱말 완성처럼 이미 제 소리가 있는 경우) */
+  silent?: boolean
 }): HTMLElement {
   const len = [...opts.char].length
   const card = el('div', { class: `hn-modal__card ${len > 1 ? 'hn-modal__card--wide' : ''}` }, [
@@ -104,6 +108,7 @@ export function prizeModal(opts: {
   ])
 
   const overlay = el('div', { class: 'hn-modal' }, [box])
+  if (!opts.silent) sfx.card(1)
 
   function close() {
     overlay.classList.add('hn-modal--out')
@@ -153,6 +158,8 @@ export function cardsModal(opts: {
   ])
 
   const overlay = el('div', { class: 'hn-modal' }, [box])
+  // 카드 여러 장은 여기로만 들어온다 — 소리도 여기서 한 번 낸다(부르는 쪽마다 챙기면 빠뜨린다)
+  sfx.card(opts.chars.length)
   function close() {
     overlay.classList.add('hn-modal--out')
     setTimeout(() => {

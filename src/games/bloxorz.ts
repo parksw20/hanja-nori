@@ -383,16 +383,55 @@ export const bloxorzGame =
      *   오른쪽 → 오른쪽 아래 모서리에서 rotateY(+90)   왼쪽 → 왼쪽 아래 모서리에서 rotateY(-90)
      *   아래   → 앞쪽 아래 모서리에서 rotateX(-90)     위   → 뒤쪽 아래 모서리에서 rotateX(+90)
      */
+    /** 도는 축(모서리)과 90도 돌았을 때의 회전, 그리고 더 넘어갔을 때(자빠질 때)의 회전 */
+    interface Pivot {
+      o: string
+      t: string
+      t2: string
+    }
+
     /** 넘어가는 모서리와 그때의 회전 */
-    function pivotOf(from: Block, dir: Dir) {
+    function pivotOf(from: Block, dir: Dir): Pivot {
       const { w, d, x, y } = geo(from)
       return dir === 'right'
-        ? { o: `${x + w}px ${y}px 0px`, t: 'rotateY(90deg)' }
+        ? { o: `${x + w}px ${y}px 0px`, t: 'rotateY(90deg)', t2: 'rotateY(165deg)' }
         : dir === 'left'
-          ? { o: `${x}px ${y}px 0px`, t: 'rotateY(-90deg)' }
+          ? { o: `${x}px ${y}px 0px`, t: 'rotateY(-90deg)', t2: 'rotateY(-165deg)' }
           : dir === 'down'
-            ? { o: `${x}px ${y + d}px 0px`, t: 'rotateX(-90deg)' }
-            : { o: `${x}px ${y}px 0px`, t: 'rotateX(90deg)' }
+            ? { o: `${x}px ${y + d}px 0px`, t: 'rotateX(-90deg)', t2: 'rotateX(-165deg)' }
+            : { o: `${x}px ${y}px 0px`, t: 'rotateX(90deg)', t2: 'rotateX(165deg)' }
+    }
+
+    /** 그 칸에 밟고 설 바닥이 있는가 */
+    function hasFloor(r: number, c: number): boolean {
+      return r >= 0 && r < lv.rows && c >= 0 && c < lv.cols && lv.grid[r][c] !== 0
+    }
+
+    /**
+     * 누운 블록의 **한쪽만** 바닥에 걸쳤을 때 자빠지는 축.
+     *
+     * 예전에는 이런 경우에도 블록이 누운 채 그대로 아래로 내려가서 **바닥을 뚫고 지나갔다.**
+     * 실제로는 받쳐 주는 칸의 모서리에 걸려 빈 쪽으로 기울어지며 넘어간다. 그 모서리를 돌려준다.
+     * 두 칸 다 허공이면(설 데가 아예 없으면) null — 그냥 떨어진다.
+     */
+    function tipPivotOf(b: Block): Pivot | null {
+      const cs = cells(b)
+      if (cs.length !== 2) return null
+      const [first, second] = cs
+      const a = hasFloor(first[0], first[1])
+      const z = hasFloor(second[0], second[1])
+      if (a === z) return null // 둘 다 있거나 둘 다 없다
+      if (b.o === 'x') {
+        // 두 칸의 경계선(세로)에 걸린다. 빈 쪽이 아래로 처진다.
+        const o = `${(b.c + 1) * S}px ${b.r * S}px 0px`
+        return a
+          ? { o, t: 'rotateY(90deg)', t2: 'rotateY(165deg)' }
+          : { o, t: 'rotateY(-90deg)', t2: 'rotateY(-165deg)' }
+      }
+      const o = `${b.c * S}px ${(b.r + 1) * S}px 0px`
+      return a
+        ? { o, t: 'rotateX(-90deg)', t2: 'rotateX(-165deg)' }
+        : { o, t: 'rotateX(90deg)', t2: 'rotateX(165deg)' }
     }
 
     /**
@@ -405,9 +444,7 @@ export const bloxorzGame =
      * 그 안을 한 장으로 눌러 버려서(preserve-3d가 깨진다) 상자가 납작한 조각이 된다 —
      * 실제로 150px 높이가 36px로 찌그러졌다.
      */
-    function animateFall(from: Block, dir: Dir, onEnd: () => void) {
-      const pivot = pivotOf(from, dir)
-      drawBlock(from)
+    function animateFall(pivot: Pivot, onEnd: () => void) {
       blockGroup.style.transformOrigin = pivot.o
       blockGroup.style.transform = 'none'
 
@@ -415,7 +452,8 @@ export const bloxorzGame =
         [
           { transform: 'none', offset: 0, easing: 'cubic-bezier(0.4, 0, 1, 1)' },
           { transform: pivot.t, offset: 0.36, easing: 'cubic-bezier(0.5, 0, 1, 1)' },
-          { transform: `translate3d(0px, 0px, -900px) ${pivot.t}`, offset: 1 },
+          // 90도에서 멈추지 않고 더 자빠지며 내려간다 — 판을 뚫는 게 아니라 넘어가는 것으로 보이게
+          { transform: `translate3d(0px, 0px, -900px) ${pivot.t2}`, offset: 1 },
         ],
         { duration: FALL_MS, fill: 'forwards' },
       )
@@ -552,13 +590,24 @@ export const bloxorzGame =
         falls++
         rolling = true
         sfx.soft()
-        animateFall(from, d, () => {
+        const reset = () => {
           block = { ...lv.start }
           moves = 0
           rolling = false
           toast(root, '앗, 떨어졌어요!', 'bad')
           draw()
-        })
+        }
+        const tip = tipPivotOf(nb)
+        if (tip) {
+          // 한쪽은 바닥에 걸쳤다 — 일단 굴러서 눕고, 그 다음 빈 쪽으로 기울어져 넘어간다
+          animateRoll(from, d, () => {
+            drawBlock(nb)
+            animateFall(tip, reset)
+          })
+        } else {
+          drawBlock(from)
+          animateFall(pivotOf(from, d), reset)
+        }
         return
       }
 
