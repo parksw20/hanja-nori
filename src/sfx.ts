@@ -16,13 +16,18 @@ let on = true
 /** 소리 크기 배수. 1이 원래 크기 */
 let vol = 1
 
-try {
-  on = localStorage.getItem(KEY) !== 'off'
-  const saved = Number(localStorage.getItem(VOL_KEY))
-  if (Number.isFinite(saved) && saved > 0) vol = saved
-} catch {
-  /* 저장소가 막혀도 소리는 켜 둔다 */
+/** 저장소에서 다시 읽어 온다 — 기록을 불러온 직후처럼 밖에서 값이 바뀐 경우 */
+export function reload(): void {
+  try {
+    on = localStorage.getItem(KEY) !== 'off'
+    const saved = Number(localStorage.getItem(VOL_KEY))
+    vol = Number.isFinite(saved) && saved > 0 ? saved : 1
+  } catch {
+    /* 저장소가 막혀도 소리는 켜 둔다 */
+  }
 }
+
+reload()
 
 export function isOn(): boolean {
   return on

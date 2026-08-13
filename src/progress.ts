@@ -49,6 +49,11 @@ function load(): Progress {
 
 let p: Progress = load()
 
+/** 저장소를 다시 읽어 온다 — 기록을 불러온 직후처럼 밖에서 값이 바뀐 경우 */
+export function reload(): void {
+  p = load()
+}
+
 function save(): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(p))

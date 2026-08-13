@@ -6,6 +6,13 @@
  * 그래서 파일로 빼 두고 되돌릴 수 있게 한다.
  */
 
+import * as srs from './srs'
+import * as progress from './progress'
+import * as cards from './cards'
+import * as prefs from './prefs'
+import * as sfx from './sfx'
+import * as tts from './tts'
+
 /** 우리가 쓰는 저장소 키는 전부 이 접두어로 시작한다 */
 const PREFIX = 'hanja-nori.'
 
@@ -55,6 +62,13 @@ export function restore(text: string): number {
     n++
   }
   if (n === 0) throw new Error('백업 파일에 기록이 없어요')
+
+  /*
+    각 모듈은 불러올 때 저장소를 한 번 읽고 그 값을 들고 있다. 저장소만 덮어써 두면
+    화면을 다시 그려도 **모듈이 든 옛 값**이 나온다 — 실제로 새로고침해야 반영됐다.
+    되돌린 자리에서 전부 다시 읽게 한다.
+  */
+  for (const m of [srs, progress, cards, prefs, sfx, tts]) m.reload()
   return n
 }
 

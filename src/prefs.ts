@@ -36,6 +36,11 @@ const DEFAULTS: Prefs = { dokeumRamp: true, resetPassword: DEFAULT_RESET_PASSWOR
 
 let p: Prefs = load()
 
+/** 저장소를 다시 읽어 온다 — 기록을 불러온 직후처럼 밖에서 값이 바뀐 경우 */
+export function reload(): void {
+  p = load()
+}
+
 function load(): Prefs {
   try {
     const raw = localStorage.getItem(KEY)

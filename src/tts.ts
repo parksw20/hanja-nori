@@ -36,12 +36,23 @@ const RATE_KEY = 'hanja-nori.voice.rate'
  * 훈음처럼 원래 천천히 읽던 것은 여전히 상대적으로 천천히 읽혀야 한다.
  */
 let rateScale = 1
-try {
-  const saved = Number(localStorage.getItem(RATE_KEY))
-  if (Number.isFinite(saved) && saved > 0) rateScale = saved
-} catch {
-  /* 저장소가 막혀도 기본 속도로 읽는다 */
+
+/**
+ * 저장소에서 다시 읽어 온다 — 기록을 불러온 직후처럼 밖에서 값이 바뀐 경우.
+ * 목소리도 다시 고른다 (불러온 기록에 다른 목소리가 적혀 있을 수 있다).
+ */
+export function reload(): void {
+  try {
+    const saved = Number(localStorage.getItem(RATE_KEY))
+    rateScale = Number.isFinite(saved) && saved > 0 ? saved : 1
+  } catch {
+    /* 저장소가 막혀도 기본 속도로 읽는다 */
+  }
+  // 음성 API가 없는 곳(테스트용 node 등)에서도 불러올 수 있어야 한다
+  if (isSupported()) pickVoice()
 }
+
+reload()
 
 /** 고를 수 있는 빠르기 */
 export const RATES: { label: string; value: number }[] = [
@@ -123,7 +134,8 @@ export function hasKoreanVoice(): boolean {
 }
 
 export function isSupported(): boolean {
-  return 'speechSynthesis' in window
+  // node(테스트)에는 window가 아예 없다 — 'in' 연산자에 닿기 전에 걸러야 던지지 않는다
+  return typeof window !== 'undefined' && 'speechSynthesis' in window
 }
 
 /**

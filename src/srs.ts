@@ -57,6 +57,11 @@ function save(s: Store): void {
 
 let store: Store = load()
 
+/** 저장소를 다시 읽어 온다 — 기록을 불러온 직후처럼 밖에서 값이 바뀐 경우 */
+export function reload(): void {
+  store = load()
+}
+
 function fresh(): CardState {
   return { reps: 0, ease: 2.5, interval: 0, due: 0, right: 0, wrong: 0, peak: 0 }
 }
