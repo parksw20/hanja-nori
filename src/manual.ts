@@ -49,9 +49,10 @@ function sections(): Section[] {
         '🖌️ 필순 따라쓰기 — 한 판을 끝내면 1장',
         '☄️ 독음 요격 — 200점마다 1장',
         `🧊 블록 굴리기 — 그 단계를 **처음** 깨면 단계 수만큼 (15단계면 서로 다른 15장). 이미 깬 단계는 안 줘요.`,
-        `📝 모의고사 — 합격하면 ${EXAM_PRIZE_BASE}장. 합격선에서 만점으로 갈수록 최대 ${EXAM_PRIZE_BONUS}장을 더 줘요 (만점이면 ${
+        `📝 모의고사 — 처음 합격하면 ${EXAM_PRIZE_BASE}장. 합격선에서 만점으로 갈수록 최대 ${EXAM_PRIZE_BONUS}장을 더 줘요 (만점이면 ${
           EXAM_PRIZE_BASE + EXAM_PRIZE_BONUS
         }장)`,
+        `📝 이미 딴 급수를 다시 보면 기본 ${EXAM_PRIZE_BASE}장은 빼고, 합격선보다 더 맞힌 만큼만 줘요 (만점이면 ${EXAM_PRIZE_BONUS}장)`,
       ],
     },
     {

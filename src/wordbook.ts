@@ -7,6 +7,7 @@
 import type { GradeId, Word } from './data/types'
 import { cumulative, wordsUpTo, hunEumOf } from './data/words'
 import * as cards from './cards'
+import * as progress from './progress'
 import * as tts from './tts'
 import * as sfx from './sfx'
 import { el, prizeModal, toast, topAction, topBar, type Screen } from './ui'
@@ -325,8 +326,15 @@ export const wordbookScreen =
           : el('p', { class: 'wb-empty', text: '카드가 없어요.' }),
       ])
 
-      // ── ④ 만든 낱말 ─────────────────────────────────────
-      const totalWords = wordsUpTo(grade).length
+      /*
+        ── ④ 만든 낱말 ─────────────────────────────────────
+        여기만은 **보고 있는 급수가 아니라 지금까지 연 급수 전체**로 본다.
+        만든 낱말은 어느 급수에서 만들었든 남는데, 보고 있는 급수(예: 8급 탭)의 낱말 목록에서
+        찾으면 6급에서 만든 男子·直立 같은 것이 안 나와서 독음도 뜻도 빈칸이 되고
+        눌러도 소리가 안 났다.
+      */
+      const madePool = wordsUpTo(progress.topUnlockedGrade())
+      const totalWords = madePool.length
       const madeSection = el('section', { class: 'wb-sec' }, [
         el('h2', { class: 'wb-sec__title', text: `만든 낱말 ${madeWords.length} / ${totalWords}` }),
         madeWords.length
@@ -334,7 +342,7 @@ export const wordbookScreen =
               'div',
               { class: 'wb-made' },
               madeWords.map((w) => {
-                const info = wordsUpTo(grade).find((x) => x.word === w)
+                const info = madePool.find((x) => x.word === w)
                 const chip = el('button', { class: 'wb-made__chip', type: 'button', title: info?.meaning ?? '' }, [
                   el('span', { class: 'wb-made__word', text: w }),
                   el('span', { class: 'wb-made__reading', text: info?.reading ?? '' }),

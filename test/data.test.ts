@@ -259,8 +259,18 @@ for (const g of GRADE_ORDER) {
   let 역전 = ''
   for (let s = spec.pass; s < spec.total; s++) if (at(s + 1) < at(s)) 역전 += `${s}→${s + 1} `
   check(`${spec.name} 점수가 오르면 상품도 안 줄어듦`, !역전, 역전)
+
+  // 재응시(이미 딴 급수) — 기본 10장을 빼고 덤만 준다
+  const 재 = (score: number) => examPrizeCount(score, spec.total, spec.pass, false)
+  check(`${spec.name} 재응시 합격선은 0장`, 재(spec.pass) === 0, `${재(spec.pass)}장`)
+  check(`${spec.name} 재응시 만점은 ${EXAM_PRIZE_BONUS}장`, 재(spec.total) === EXAM_PRIZE_BONUS, `${재(spec.total)}장`)
+  let 차이 = ''
+  for (let s = spec.pass; s <= spec.total; s++) if (at(s) - 재(s) !== EXAM_PRIZE_BASE) 차이 += `${s} `
+  check(`${spec.name} 재응시는 늘 기본 ${EXAM_PRIZE_BASE}장만큼 적음`, !차이, 차이)
 }
 check('합격선 아래는 기본만', examPrizeCount(0, 100, 70) === EXAM_PRIZE_BASE, `${examPrizeCount(0, 100, 70)}장`)
+// 0장을 달라고 하면 0장이어야 한다 (재응시로 합격선에 딱 걸치면 실제로 0장을 요청한다)
+check('카드 0장 요청은 0장', pickRewards('8', 0).length === 0, `${pickRewards('8', 0).length}장`)
 
 // ── 5. 블록 굴리기 레벨 ──────────────────────────────────────────
 // 손으로 그린 판은 풀 수 없는 것이 섞인다 (실제로 처음 5단계가 그랬다). BFS로 전수 검사.

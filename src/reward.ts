@@ -22,6 +22,9 @@ export function pickReward(grade: GradeId): string {
  * 낱말에서 뽑다가 더 못 채우면 그 급수까지의 배정한자에서 채운다.
  */
 export function pickRewards(grade: GradeId, n: number): string[] {
+  // 0장을 달라고 하면 0장이어야 한다. 아래 고리는 넣고 나서 세기 때문에 막지 않으면 1장이 나온다
+  // (합격선에 딱 걸친 재응시가 실제로 0장을 요청한다).
+  if (n <= 0) return []
   const picked: string[] = []
   const seen = new Set<string>()
 

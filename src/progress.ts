@@ -1,4 +1,6 @@
 /** 급수증·최고기록 같은 "모으는 것"들. SRS와 달리 한 번 얻으면 안 사라진다. */
+import type { GradeId } from './data/types'
+import { LADDER } from './data/words'
 
 const KEY = 'hanja-nori.progress.v1'
 
@@ -82,6 +84,25 @@ export function recordExam(r: ExamRecord, certificate: string): void {
 
 export function hasCertificate(id: string): boolean {
   return p.certificates.includes(id)
+}
+
+/** 앞 급수에 합격했으면 열린다. 첫 급수는 늘 열려 있다. */
+export function isUnlocked(grade: GradeId): boolean {
+  const i = LADDER.indexOf(grade)
+  if (i <= 0) return true
+  return hasCertificate(LADDER[i - 1])
+}
+
+/**
+ * 지금까지 연 가장 높은 급수.
+ *
+ * 화면에서 **보고 있는** 급수와는 다르다. 8급 탭을 눌러 쉬운 한자를 구경하는 중에도
+ * 이미 만든 낱말·모은 카드는 6급 것일 수 있다 — 그런 것들을 다룰 때 쓴다.
+ */
+export function topUnlockedGrade(): GradeId {
+  let top: GradeId = LADDER[0]
+  for (const g of LADDER) if (isUnlocked(g)) top = g
+  return top
 }
 
 /** 그 급수 시험을 다시 볼 수 있을 때까지 남은 시간(ms). 0이면 지금 볼 수 있다. */

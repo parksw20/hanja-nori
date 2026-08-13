@@ -25,11 +25,7 @@ const GROWTH_ICON: Record<ReturnType<typeof srs.growthOf>, string> = {
 }
 
 /** 그 급수를 열려면 바로 아래 급수의 급수증이 있어야 한다. 8급은 처음부터 열려 있다. */
-function isUnlocked(grade: GradeId): boolean {
-  const i = LADDER.indexOf(grade)
-  if (i <= 0) return true
-  return progress.hasCertificate(LADDER[i - 1])
-}
+const isUnlocked = progress.isUnlocked
 
 /** 지금 도전 중인 급수 = 아직 급수증이 없는 가장 낮은 급수 */
 function currentGrade(): GradeId {

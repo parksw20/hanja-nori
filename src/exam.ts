@@ -47,12 +47,18 @@ export const EXAM_PRIZE_BONUS = 10
  *
  * 올림이 아니라 **버림**이다. 반올림하면 만점을 안 맞아도 만점과 같은 20장이 나와서
  * "만점 기준"이라는 말이 무색해진다.
+ *
+ * **이미 딴 급수를 다시 보면 기본 10장은 없다.** 급수증은 한 번만 따는 것이고, 쉬운
+ * 급수를 반복해 10장씩 찍어내면 카드가 흔해져 단어장이 의미를 잃는다(블록 굴리기에서
+ * 이미 깬 단계에 카드를 안 주는 것과 같은 이유). 대신 점수만큼의 덤은 그대로 준다 —
+ * 복습해서 더 잘 보면 그만큼은 받는다.
  */
-export function examPrizeCount(score: number, total: number, pass: number): number {
+export function examPrizeCount(score: number, total: number, pass: number, firstTime = true): number {
+  const base = firstTime ? EXAM_PRIZE_BASE : 0
   const span = total - pass
-  if (span <= 0) return EXAM_PRIZE_BASE + EXAM_PRIZE_BONUS
+  if (span <= 0) return base + EXAM_PRIZE_BONUS
   const ratio = Math.max(0, Math.min(1, (score - pass) / span))
-  return EXAM_PRIZE_BASE + Math.floor(EXAM_PRIZE_BONUS * ratio)
+  return base + Math.floor(EXAM_PRIZE_BONUS * ratio)
 }
 
 export interface ExamSpec {
@@ -600,6 +606,8 @@ export const examScreen =
 
       const seconds = Math.round((Date.now() - startedAt) / 1000)
       const passed = score >= spec.pass
+      // 급수증이 이미 있는지는 **기록하기 전에** 봐야 한다 — recordExam이 그 자리에서 발급한다
+      const firstTime = !progress.hasCertificate(spec.id)
       progress.recordExam({ score, total: spec.total, passed, seconds, at: Date.now(), grade: spec.id }, spec.id)
       // 제출음이 끝난 뒤에 결과음 — 합격이면 팡파레가 끝나는 지점부터 박수가 이어진다
       setTimeout(() => {
@@ -612,7 +620,7 @@ export const examScreen =
       }, 260)
 
       // 합격하면 카드를 넉넉히 준다 — 다음 급수 낱말을 바로 만들어 볼 수 있게
-      const prize = passed ? pickRewards(grade, examPrizeCount(score, spec.total, spec.pass)) : []
+      const prize = passed ? pickRewards(grade, examPrizeCount(score, spec.total, spec.pass, firstTime)) : []
       if (prize.length) cards.addMany(prize)
 
       const next = LADDER[LADDER.indexOf(grade) + 1]
@@ -637,15 +645,22 @@ export const examScreen =
               `합격 기준 ${spec.pass}문항 (70%)`,
               `걸린 시간 ${fmt(seconds * 1000)} / ${spec.minutes}분`,
               passed
-                ? next
-                  ? `${spec.name} 급수증을 받았어요 — ${EXAMS[next].name}이 열렸어요!`
-                  : `${spec.name} 급수증을 받았어요`
+                ? !firstTime
+                  ? // 재응시 — 급수증을 또 준 것처럼 말하면 안 된다
+                    `${spec.name} 급수증은 이미 갖고 있어요`
+                  : next
+                    ? `${spec.name} 급수증을 받았어요 — ${EXAMS[next].name}이 열렸어요!`
+                    : `${spec.name} 급수증을 받았어요`
                 : `${spec.pass - score}문항만 더 맞히면 합격이에요`,
-              prize.length
-                ? `한자 카드 ${prize.length}장을 받았어요 (기본 ${EXAM_PRIZE_BASE}장 + 합격선 위로 ${
-                    prize.length - EXAM_PRIZE_BASE
-                  }장)`
-                : '',
+              passed && !firstTime
+                ? prize.length
+                  ? `한자 카드 ${prize.length}장을 받았어요 (이미 딴 급수라 기본 ${EXAM_PRIZE_BASE}장은 빼고, 합격선 위로 ${prize.length}장)`
+                  : `이미 딴 급수예요 — 합격선보다 더 맞혀야 카드를 받아요`
+                : prize.length
+                  ? `한자 카드 ${prize.length}장을 받았어요 (기본 ${EXAM_PRIZE_BASE}장 + 합격선 위로 ${
+                      prize.length - EXAM_PRIZE_BASE
+                    }장)`
+                  : '',
             ].filter(Boolean),
             actions: [
               { label: '다시 응시', primary: true, onClick: () => nav(examScreen(grade, home)) },
