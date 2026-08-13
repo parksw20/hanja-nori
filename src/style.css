@@ -404,7 +404,9 @@ body {
 /* 넓은 화면: 왼쪽 메뉴 + 오른쪽 정원 */
 .gd-layout {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  /* 300px에서는 「독음 요격」 설명이 「최고 1231」에 밀려 두 줄로 접혔다.
+     정원 쪽은 남는 자리가 넉넉하니 메뉴 칸을 조금 넓힌다. */
+  grid-template-columns: 340px 1fr;
   gap: 22px;
   align-items: start;
 }
@@ -694,22 +696,44 @@ body {
 .gd-item__body {
   flex: 1;
   display: grid;
+  /* 격자 칸은 기본이 min-content라 긴 글이 칸을 밀어 넓힌다 — 0으로 눌러야 줄임표가 먹는다 */
+  min-width: 0;
 }
 
+/* 최고 기록은 이름 옆에 붙인다. 설명 옆에 두면 설명이 그만큼 좁아져 두 줄로 접힌다. */
+.gd-item__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 아주 좁은 화면(320px)에서 긴 이름 + 다섯 자리 기록이 겹치는 것만 줄임표로 막는다 */
 .gd-item__name {
   font-size: 1.3rem;
   font-weight: 700;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* 설명은 무슨 일이 있어도 한 줄 — 넘치면 줄임표로 자른다(제목만 봐도 뭘 하는지 안다) */
 .gd-item__desc {
   font-size: 0.92rem;
   color: var(--hn-ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gd-item__best {
   font-size: 0.92rem;
   color: var(--hn-accent);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 /* ── 놀이 방법(매뉴얼) ─────────────────────────────────── */

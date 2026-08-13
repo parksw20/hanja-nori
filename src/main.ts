@@ -181,16 +181,18 @@ const home: Screen = (root, nav) => {
       [
       el('span', { class: 'gd-item__emoji', text: cooldown > 0 ? '⏳' : progress.hasCertificate(grade) ? '🎖️' : '📝' }),
       el('span', { class: 'gd-item__body' }, [
-        el('span', { class: 'gd-item__name', text: `${spec.name} 모의고사` }),
+        el('span', { class: 'gd-item__head' }, [
+          el('span', { class: 'gd-item__name', text: `${spec.name} 모의고사` }),
+          el('span', {
+            class: 'gd-item__best',
+            text: examBest.length ? `최고 ${Math.max(...examBest.map((e) => e.score))}` : '',
+          }),
+        ]),
         el('span', {
           class: 'gd-item__desc',
           text: cooldownText || `${spec.total}문항 · ${spec.minutes}분 · ${spec.pass}문항 합격`,
         }),
       ]),
-      el('span', {
-        class: 'gd-item__best',
-        text: examBest.length ? `최고 ${Math.max(...examBest.map((e) => e.score))}` : '',
-      }),
     ]),
   ])
 
@@ -287,13 +289,15 @@ function wordbookButton(grade: GradeId, nav: (s: Screen) => void): HTMLElement {
     [
       el('span', { class: 'gd-item__emoji', text: '📒' }),
       el('span', { class: 'gd-item__body' }, [
-        el('span', { class: 'gd-item__name', text: '단어장' }),
+        el('span', { class: 'gd-item__head' }, [
+          el('span', { class: 'gd-item__name', text: '단어장' }),
+          el('span', { class: 'gd-item__best', text: n ? `🂠 ${n}` : '' }),
+        ]),
         el('span', {
           class: 'gd-item__desc',
           text: n ? `카드 ${n}장 · 만든 낱말 ${made}개` : '카드를 모아 낱말을 만들어요',
         }),
       ]),
-      el('span', { class: 'gd-item__best', text: n ? `🂠 ${n}` : '' }),
     ],
   )
 }
@@ -327,10 +331,12 @@ function menuButton(emoji: string, name: string, desc: string, gameId: string, o
     [
     el('span', { class: 'gd-item__emoji', text: emoji }),
     el('span', { class: 'gd-item__body' }, [
-      el('span', { class: 'gd-item__name', text: name }),
+      el('span', { class: 'gd-item__head' }, [
+        el('span', { class: 'gd-item__name', text: name }),
+        el('span', { class: 'gd-item__best', text: best ? `최고 ${best}` : '' }),
+      ]),
       el('span', { class: 'gd-item__desc', text: desc }),
     ]),
-    el('span', { class: 'gd-item__best', text: best ? `최고 ${best}` : '' }),
   ])
 }
 
