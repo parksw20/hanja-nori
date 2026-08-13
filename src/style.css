@@ -1785,3 +1785,100 @@ body {
   .gd-garden { grid-template-columns: repeat(6, 1fr); }
   .gd-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── 설정 화면 ────────────────────────────────────────────── */
+
+.st-wrap {
+  display: grid;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.st-sec {
+  padding: 14px 16px;
+  border-radius: var(--hn-radius);
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+}
+
+.st-sec__title {
+  margin: 0 0 10px;
+  font-size: 1.2rem;
+}
+
+/* 좁은 화면에서는 설명 밑으로 고르는 칸이 내려가야 잘리지 않는다 */
+.st-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--hn-line);
+}
+
+.st-row:first-of-type {
+  border-top: none;
+}
+
+.st-row__text {
+  display: grid;
+  gap: 2px;
+  min-width: 200px;
+  flex: 1 1 200px;
+}
+
+.st-row__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.st-row__desc {
+  font-size: 0.92rem;
+  color: var(--hn-ink-dim);
+}
+
+.st-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 유치원 아이도 누를 수 있게 넉넉히 */
+.st-chip {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 2px solid var(--hn-line);
+  background: var(--hn-bg-2);
+  color: var(--hn-ink);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.st-chip--on {
+  border-color: var(--hn-accent);
+  background: #3a3520;
+  color: var(--hn-accent);
+  font-weight: 700;
+}
+
+.st-chip--danger {
+  border-color: var(--hn-bad);
+  color: var(--hn-bad);
+}
+
+.st-select {
+  max-width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 2px solid var(--hn-line);
+  background: var(--hn-bg-2);
+  color: var(--hn-ink);
+  font-size: 1rem;
+}
+
+.st-none {
+  color: var(--hn-ink-dim);
+}

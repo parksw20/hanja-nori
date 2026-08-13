@@ -9,6 +9,7 @@ import * as srs from '../srs'
 import * as progress from '../progress'
 import * as tts from '../tts'
 import * as cards from '../cards'
+import * as prefs from '../prefs'
 import { pickRewards } from '../reward'
 import { cardsModal, el, resultCard, toast, topBar, type Screen } from '../ui'
 
@@ -137,7 +138,8 @@ export const dokeumGame =
         tts.speak(cur.reading, { rate: 0.95 })
         toast(root, `+${gained}`, 'good')
         faller.classList.add('dk-faller--hit')
-        fallMs = Math.max(FALL_MIN, fallMs - FALL_STEP)
+        // 설정에서 「변화 없음」을 고르면 처음 속도 그대로 간다
+        if (prefs.get().dokeumRamp) fallMs = Math.max(FALL_MIN, fallMs - FALL_STEP)
         setTimeout(nextWord, 450)
       } else {
         for (const c of cur.word) srs.review(c, 'wrong')

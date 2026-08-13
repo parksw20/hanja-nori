@@ -9,18 +9,45 @@
  */
 
 const KEY = 'hanja-nori.sound'
+const VOL_KEY = 'hanja-nori.sound.volume'
 
 let ctx: AudioContext | null = null
 let on = true
+/** 소리 크기 배수. 1이 원래 크기 */
+let vol = 1
 
 try {
   on = localStorage.getItem(KEY) !== 'off'
+  const saved = Number(localStorage.getItem(VOL_KEY))
+  if (Number.isFinite(saved) && saved > 0) vol = saved
 } catch {
   /* 저장소가 막혀도 소리는 켜 둔다 */
 }
 
 export function isOn(): boolean {
   return on
+}
+
+/** 고를 수 있는 크기 — 아이가 슬라이더를 미세 조정하지는 않는다 */
+export const VOLUMES: { label: string; value: number }[] = [
+  { label: '작게', value: 0.45 },
+  { label: '보통', value: 1 },
+  { label: '크게', value: 1.8 },
+]
+
+export function volume(): number {
+  return vol
+}
+
+/** 크기를 바꾸고 그 자리에서 한 번 들려준다 — 귀로 확인하지 않으면 고른 의미가 없다 */
+export function setVolume(v: number): void {
+  vol = v
+  try {
+    localStorage.setItem(VOL_KEY, String(v))
+  } catch {
+    /* 무시 */
+  }
+  if (on) tap()
 }
 
 export function toggle(): boolean {
@@ -61,7 +88,8 @@ function tone(freq: number, dur: number, opts: { delay?: number; gain?: number; 
   osc.frequency.setValueAtTime(freq, t0)
   // 뚝 끊기면 "틱" 하는 잡음이 난다 — 짧게 올렸다 부드럽게 내린다
   // (0.07로 시작했는데 굽어 들어 보니 너무 작았다 — 태블릿 스피커에서도 들리게 올렸다)
-  const peak = opts.gain ?? 0.13
+  // 0으로 곱해지면 exponentialRamp가 던진다 — 크기는 늘 양수로 유지한다
+  const peak = (opts.gain ?? 0.13) * vol
   g.gain.setValueAtTime(0.0001, t0)
   g.gain.exponentialRampToValueAtTime(peak, t0 + 0.012)
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
@@ -115,7 +143,7 @@ export function applause(delay = 0): void {
     bp.frequency.value = 1100 + Math.random() * 1900
     bp.Q.value = 0.7
     const g = ac.createGain()
-    const peak = 0.07 + Math.random() * 0.08
+    const peak = (0.07 + Math.random() * 0.08) * vol
     g.gain.setValueAtTime(0.0001, t)
     g.gain.exponentialRampToValueAtTime(peak, t + 0.004)
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05 + Math.random() * 0.06)

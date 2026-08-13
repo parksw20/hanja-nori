@@ -6,10 +6,10 @@ import * as progress from './progress'
 import * as tts from './tts'
 import * as cards from './cards'
 import * as sfx from './sfx'
-import * as backup from './backup'
 import { EXAMS, examScreen } from './exam'
 import { wordbookScreen } from './wordbook'
 import { manualScreen } from './manual'
+import { settingsScreen } from './settings'
 import { hunmumGame } from './games/hunmum'
 import { dokeumGame } from './games/dokeum'
 import { pilsunGame } from './games/pilsun'
@@ -217,49 +217,18 @@ const home: Screen = (root, nav) => {
             nav(manualScreen(home))
           },
         }),
+        // 목소리·기록 백업·초기화는 설정으로 옮겼다 — 아이가 놀려고 여는 화면에
+        // 「기록 불러오기」 같은 위험한 버튼이 늘 보일 이유가 없다
+        el('button', {
+          class: 'gd-manual',
+          type: 'button',
+          text: '⚙️ 설정',
+          onclick: () => {
+            sfx.tap()
+            nav(settingsScreen(home))
+          },
+        }),
         soundToggle(),
-        voicePicker(),
-        el('footer', { class: 'gd-foot' }, [
-          // 기록은 이 브라우저에만 있다 — 기기를 바꾸거나 브라우저 데이터를 지우면 사라진다.
-          // 파일로 빼 둘 수 있게 해 둔다.
-          el('div', { class: 'gd-backup' }, [
-            el('button', {
-              class: 'gd-backup__btn',
-              type: 'button',
-              text: '💾 기록 백업',
-              onclick: () => backup.download(),
-            }),
-            el('button', {
-              class: 'gd-backup__btn',
-              type: 'button',
-              text: '📂 기록 불러오기',
-              onclick: () =>
-                backup.pickAndRestore(
-                  (n) => {
-                    alert(`기록 ${n}개를 되돌렸어요.`)
-                    viewing = null
-                    nav(home)
-                  },
-                  (msg) => alert(msg),
-                ),
-            }),
-          ]),
-          el('button', {
-            class: 'gd-reset',
-            type: 'button',
-            text: '기록 처음부터',
-            onclick: () => {
-              // 아이가 잘못 눌러 통째로 날리는 일이 없게 두 번 묻는다
-              if (!confirm('배운 기록·급수증·한자 카드가 모두 지워집니다. 계속할까요?')) return
-              if (!confirm('정말 지울까요? 되돌릴 수 없어요. (먼저 「기록 백업」을 받아 두면 안전해요)')) return
-              srs.resetAll()
-              progress.resetAll()
-              cards.resetAll()
-              viewing = null
-              nav(home)
-            },
-          }),
-        ]),
       ]),
       el('main', { class: 'gd-main' }, [
         picker,
@@ -327,33 +296,6 @@ function wordbookButton(grade: GradeId, nav: (s: Screen) => void): HTMLElement {
       el('span', { class: 'gd-item__best', text: n ? `🂠 ${n}` : '' }),
     ],
   )
-}
-
-/**
- * 목소리 고르기. 기기에 한국어 음성이 둘 이상 있을 때만 보인다.
- * 윈도우 크롬의 기본 음성(Heami)은 딱딱한데, Edge에는 사람 같은 신경망 음성이 있다.
- */
-function voicePicker(): HTMLElement {
-  const voices = tts.koreanVoices()
-  if (voices.length <= 1) {
-    return el('p', {
-      class: 'gd-voice gd-voice--single',
-      text: voices.length ? `🔊 ${voices[0].name}` : '🔇 이 기기에 한국어 음성이 없어요',
-    })
-  }
-
-  const select = el('select', { class: 'gd-voice__select' })
-  for (const v of voices) {
-    const opt = el('option', { value: v.name, text: v.name })
-    if (v.name === tts.voiceName()) opt.selected = true
-    select.append(opt)
-  }
-  select.addEventListener('change', () => {
-    tts.useVoice(select.value)
-    tts.speak('가르칠 교')
-  })
-
-  return el('label', { class: 'gd-voice' }, [el('span', { class: 'gd-voice__label', text: '🔊 목소리' }), select])
 }
 
 function legendItem(icon: string, label: string): HTMLElement {

@@ -29,6 +29,39 @@ const VOICE_PREFERENCE: ((v: SpeechSynthesisVoice) => boolean)[] = [
 ]
 
 const PREF_KEY = 'hanja-nori.voice'
+const RATE_KEY = 'hanja-nori.voice.rate'
+
+/**
+ * 말 빠르기 배수. 부르는 쪽이 정한 rate에 **곱한다** —
+ * 훈음처럼 원래 천천히 읽던 것은 여전히 상대적으로 천천히 읽혀야 한다.
+ */
+let rateScale = 1
+try {
+  const saved = Number(localStorage.getItem(RATE_KEY))
+  if (Number.isFinite(saved) && saved > 0) rateScale = saved
+} catch {
+  /* 저장소가 막혀도 기본 속도로 읽는다 */
+}
+
+/** 고를 수 있는 빠르기 */
+export const RATES: { label: string; value: number }[] = [
+  { label: '느리게 (0.8배)', value: 0.8 },
+  { label: '보통 (1배)', value: 1 },
+  { label: '빠르게 (1.2배)', value: 1.2 },
+]
+
+export function rate(): number {
+  return rateScale
+}
+
+export function setRate(v: number): void {
+  rateScale = v
+  try {
+    localStorage.setItem(RATE_KEY, String(v))
+  } catch {
+    /* 무시 */
+  }
+}
 
 function pickVoice(): void {
   const all = speechSynthesis.getVoices()
@@ -107,7 +140,8 @@ export function speak(text: string, opts: { rate?: number; onEnd?: () => void } 
   const u = new SpeechSynthesisUtterance(text)
   u.lang = 'ko-KR'
   if (koVoice) u.voice = koVoice
-  u.rate = opts.rate ?? 0.9
+  // 브라우저가 받아 주는 범위(0.1~10)를 벗어나면 조용히 무시되거나 튄다
+  u.rate = Math.max(0.1, Math.min(10, (opts.rate ?? 0.9) * rateScale))
   // 피치를 올리면 구형 음성은 더 기계처럼 들린다 — 있는 그대로 둔다
   u.pitch = 1
 
@@ -121,8 +155,9 @@ export function speak(text: string, opts: { rate?: number; onEnd?: () => void } 
     u.addEventListener('end', finish)
     u.addEventListener('error', finish)
     // 음성이 아예 안 울리는 경우(권한·버그)에도 멈추지 않게 안전장치.
-    // 한글 한 글자에 대략 0.25초 + 여유.
-    setTimeout(finish, 900 + text.length * 260)
+    // 한글 한 글자에 대략 0.25초 + 여유. 느리게 읽도록 해 두면 그만큼 더 기다려야 한다 —
+    // 안 그러면 말이 끝나기도 전에 다음 소리(빠밤)가 겹친다.
+    setTimeout(finish, (900 + text.length * 260) / rateScale)
   }
 
   speechSynthesis.speak(u)
