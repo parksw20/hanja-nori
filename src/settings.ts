@@ -163,6 +163,36 @@ export const settingsScreen =
         ]),
       )
 
+      const passwordRow = row(
+        '지우기 비밀번호',
+        `「기록 처음부터」를 누를 때 물어봐요. 처음 값은 ${prefs.DEFAULT_RESET_PASSWORD}예요 — 아이가 모르게 바꿔 두세요`,
+        el('button', {
+          class: 'st-chip',
+          type: 'button',
+          text: '바꾸기',
+          onclick: () => {
+            const now = prompt('지금 비밀번호를 입력하세요')
+            if (now === null) return
+            if (!prefs.checkResetPassword(now)) {
+              alert('비밀번호가 달라요.')
+              return
+            }
+            const next = prompt('새 비밀번호를 입력하세요')
+            if (next === null) return
+            if (!next.trim()) {
+              alert('빈 비밀번호는 쓸 수 없어요.')
+              return
+            }
+            if (prompt('한 번 더 입력하세요')?.trim() !== next.trim()) {
+              alert('두 번 입력한 값이 달라요. 바꾸지 않았어요.')
+              return
+            }
+            prefs.setResetPassword(next)
+            alert('비밀번호를 바꿨어요.')
+          },
+        }),
+      )
+
       const resetRow = row(
         '기록 처음부터',
         '배운 기록·급수증·한자 카드를 모두 지워요. 되돌릴 수 없어요',
@@ -171,9 +201,14 @@ export const settingsScreen =
           type: 'button',
           text: '지우기',
           onclick: () => {
-            // 아이가 잘못 눌러 통째로 날리는 일이 없게 두 번 묻는다
+            // 확인 창만 두 번 띄우면 아이는 그냥 두 번 누른다 — 아는 사람만 통과하는 단계가 필요하다
             if (!confirm('배운 기록·급수증·한자 카드가 모두 지워집니다. 계속할까요?')) return
-            if (!confirm('정말 지울까요? 되돌릴 수 없어요. (먼저 「💾 저장」을 받아 두면 안전해요)')) return
+            const pw = prompt('비밀번호를 입력하세요 (먼저 「💾 저장」을 받아 두면 안전해요)')
+            if (pw === null) return
+            if (!prefs.checkResetPassword(pw)) {
+              alert('비밀번호가 달라요. 아무것도 지우지 않았어요.')
+              return
+            }
             srs.resetAll()
             progress.resetAll()
             cards.resetAll()
@@ -187,7 +222,12 @@ export const settingsScreen =
         el('div', { class: 'st-wrap' }, [
           el('section', { class: 'st-sec' }, [el('h2', { class: 'st-sec__title', text: '🔊 소리' }), soundRow, voiceRow, rateRow]),
           el('section', { class: 'st-sec' }, [el('h2', { class: 'st-sec__title', text: '🎮 놀이' }), rampRow]),
-          el('section', { class: 'st-sec' }, [el('h2', { class: 'st-sec__title', text: '💾 기록' }), backupRow, resetRow]),
+          el('section', { class: 'st-sec' }, [
+            el('h2', { class: 'st-sec__title', text: '💾 기록' }),
+            backupRow,
+            passwordRow,
+            resetRow,
+          ]),
         ]),
       )
     }

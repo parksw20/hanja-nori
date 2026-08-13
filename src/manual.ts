@@ -8,6 +8,7 @@ import { EXAMS, EXAM_PRIZE_BASE, EXAM_PRIZE_BONUS } from './exam'
 import { LADDER, NEW_BY_GRADE, cumulative } from './data/words'
 import { EXAM_COOLDOWN_MS } from './progress'
 import { EXCHANGE_COST } from './cards'
+import * as prefs from './prefs'
 import { LEVELS } from './games/bloxorz'
 import { el, topBar, type Screen } from './ui'
 
@@ -102,6 +103,7 @@ function sections(): Section[] {
         '기록은 이 브라우저에만 저장돼요. 앱을 새로 올려도 지워지지 않아요.',
         '브라우저 데이터를 지우거나 기기를 바꾸면 사라져요.',
         '「⚙️ 설정」의 「💾 저장」으로 파일에 담아 두고, 「📂 불러오기」로 되돌릴 수 있어요.',
+        `「기록 처음부터」는 비밀번호를 물어봐요. 처음 값은 ${prefs.DEFAULT_RESET_PASSWORD}이고 설정에서 바꿀 수 있어요.`,
         '소리가 거슬리면 「🔔 효과음」을 눌러 끄거나, 설정에서 크기를 줄일 수 있어요.',
       ],
     },
