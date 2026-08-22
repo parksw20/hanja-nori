@@ -132,7 +132,7 @@ check('독음 문제를 채울 만큼 한자어가 있음 (≥24)', WORDS_8.leng
 // 쓰이지 않는 한자 = 그 글자는 독음 게임에 영영 안 나오고, 카드로도 안 나온다.
 // 아래 급수부터 차례로 채우는 중이다. 여기 적힌 급수는 "전부 덮였다"는 약속이라,
 // 새 급수의 낱말을 다 쓴 뒤에만 목록에 올린다.
-const WORD_COVERED: readonly string[] = ['8', '7II', '7', '6II', '6', '5II', '5', '4II', '4']
+const WORD_COVERED: readonly string[] = ['8', '7II', '7', '6II', '6', '5II', '5', '4II', '4', '3II']
 const usedInWords = new Set([...ALL_WORDS.flatMap((w) => [...w.word])])
 const unused = ALL_HANJA.filter((h) => WORD_COVERED.includes(h.grade) && !usedInWords.has(h.char)).map((h) => h.char)
 check(
@@ -374,4 +374,5 @@ if (failed > 0) {
   process.exit(1)
 }
 console.log(`\n전부 통과 — 한자 ${HANJA_8.length}자, 낱말 ${WORDS_8.length}개`)
+
 
