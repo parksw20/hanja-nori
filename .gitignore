@@ -7,3 +7,10 @@ dist/
 src/data/strokes-*.json
 src/data/radicals.json
 src/data/no-strokes.json
+
+# 낱말 채우는 동안 쓰는 임시 검사 스크립트
+gaps-check.ts
+gaps.txt
+reward-check.ts
+reward-dist.txt
+scratch-chars.txt

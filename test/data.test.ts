@@ -128,14 +128,14 @@ check('모든 한자어에 뜻풀이가 있음', noMeaning.length === 0, noMeani
 // 낱말이 너무 적으면 독음 문제 24문항을 못 채운다 (8급 독음 배점 기준)
 check('독음 문제를 채울 만큼 한자어가 있음 (≥24)', WORDS_8.length >= 24, `${WORDS_8.length}개`)
 
-// 쓰이지 않는 한자 = 그 글자는 독음 게임에 영영 안 나온다.
-// 낱말은 5급까지 손으로 채웠다. 그 위 급수는 한자·부수·필순·장단음으로 배우고
-// 독음/뜻풀이/한자쓰기 문제는 아래 급수 낱말에서 나온다 (README '알려진 제약' 참고).
-const WORD_COVERED: readonly string[] = ['8', '7II', '7', '6II', '6', '5II', '5']
+// 쓰이지 않는 한자 = 그 글자는 독음 게임에 영영 안 나오고, 카드로도 안 나온다.
+// 아래 급수부터 차례로 채우는 중이다. 여기 적힌 급수는 "전부 덮였다"는 약속이라,
+// 새 급수의 낱말을 다 쓴 뒤에만 목록에 올린다.
+const WORD_COVERED: readonly string[] = ['8', '7II', '7', '6II', '6', '5II', '5', '4II']
 const usedInWords = new Set([...ALL_WORDS.flatMap((w) => [...w.word])])
 const unused = ALL_HANJA.filter((h) => WORD_COVERED.includes(h.grade) && !usedInWords.has(h.char)).map((h) => h.char)
 check(
-  `5급까지 배정한자 전부가 낱말에 최소 한 번은 쓰임`,
+  `${WORD_COVERED[WORD_COVERED.length - 1]}급까지 배정한자 전부가 낱말에 최소 한 번은 쓰임`,
   unused.length === 0,
   `미사용: ${unused.join(' ')}`,
 )
