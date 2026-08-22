@@ -19,7 +19,7 @@ import {
   STROKE_VARIANT,
   NO_PILSUN,
 } from '../src/data/grades'
-import { ALL_HANJA, ALL_WORDS } from '../src/data/words'
+import { ALL_HANJA, ALL_WORDS, NEW_BY_GRADE, wordsUpTo } from '../src/data/words'
 import { EXAMS, EXAM_PRIZE_BASE, EXAM_PRIZE_BONUS, buildQuestions, examPrizeCount } from '../src/exam'
 import { LEVELS, parseLevel, solve } from '../src/games/bloxorz'
 import { pickReward, pickRewards } from '../src/reward'
@@ -132,7 +132,7 @@ check('독음 문제를 채울 만큼 한자어가 있음 (≥24)', WORDS_8.leng
 // 쓰이지 않는 한자 = 그 글자는 독음 게임에 영영 안 나오고, 카드로도 안 나온다.
 // 아래 급수부터 차례로 채우는 중이다. 여기 적힌 급수는 "전부 덮였다"는 약속이라,
 // 새 급수의 낱말을 다 쓴 뒤에만 목록에 올린다.
-const WORD_COVERED: readonly string[] = ['8', '7II', '7', '6II', '6', '5II', '5', '4II', '4', '3II']
+const WORD_COVERED: readonly string[] = GRADE_ORDER
 const usedInWords = new Set([...ALL_WORDS.flatMap((w) => [...w.word])])
 const unused = ALL_HANJA.filter((h) => WORD_COVERED.includes(h.grade) && !usedInWords.has(h.char)).map((h) => h.char)
 check(
@@ -140,6 +140,15 @@ check(
   unused.length === 0,
   `미사용: ${unused.join(' ')}`,
 )
+
+// 전체에서 한 번 쓰였다고 그 급수에서 나오는 것은 아니다 — 짝이 윗 급수 글자면
+// 낱말이 위로 밀려 정작 그 글자를 배우는 급수에서는 안 나온다(실제로 아홉 자가 그랬다).
+// 카드·독음 문제는 wordsUpTo(급수)에서 나오므로 **급수별로** 덮여야 한다.
+for (const g of GRADE_ORDER) {
+  const used = new Set(wordsUpTo(g).flatMap((w) => [...w.word]))
+  const gap = NEW_BY_GRADE[g].map((h) => h.char).filter((c) => !used.has(c))
+  check(`${g}급 배정한자가 그 급수 낱말 안에서 전부 쓰임`, gap.length === 0, `미사용: ${gap.join(' ')}`)
+}
 
 const allWordLenBad = ALL_WORDS.filter((w) => [...w.word].length !== [...w.reading].length)
 check(
