@@ -10,6 +10,7 @@ import { EXAMS, examScreen } from './exam'
 import { wordbookScreen } from './wordbook'
 import { manualScreen } from './manual'
 import { settingsScreen } from './settings'
+import { reviewScreen, wiltedNow } from './review'
 import { hunmumGame } from './games/hunmum'
 import { dokeumGame } from './games/dokeum'
 import { pilsunGame } from './games/pilsun'
@@ -163,7 +164,34 @@ const home: Screen = (root, nav) => {
   const examBest = p.exams.filter((e) => (e.grade ? e.grade === grade : e.total === spec.total))
   const cooldown = progress.examCooldownLeft(grade)
   const cooldownText = cooldown > 0 ? `${Math.ceil(cooldown / 60000)}분 뒤에 다시 볼 수 있어요` : ''
+  // 시든 글자가 있을 때만 맨 위에 띄운다 — 없을 때 자리를 차지하면 그냥 메뉴가 하나 는 셈이다
+  const wilted = wiltedNow()
   const menu = el('div', { class: 'gd-menu' }, [
+    ...(wilted.length
+      ? [
+          el(
+            'button',
+            {
+              class: 'gd-item gd-item--revive',
+              type: 'button',
+              onclick: () => {
+                sfx.tap()
+                nav(reviewScreen(grade, home))
+              },
+            },
+            [
+              el('span', { class: 'gd-item__emoji', text: '🥀' }),
+              el('span', { class: 'gd-item__body' }, [
+                el('span', { class: 'gd-item__head' }, [
+                  el('span', { class: 'gd-item__name', text: '시든 한자 되살리기' }),
+                  el('span', { class: 'gd-item__best', text: `${wilted.length}자` }),
+                ]),
+                el('span', { class: 'gd-item__desc', text: '빨개진 한자만 모아 복습해요' }),
+              ]),
+            ],
+          ),
+        ]
+      : []),
     menuButton('🃏', '훈음 짝맞추기', '뜻과 소리를 짝지어요', 'hunmum', () => nav(hunmumGame(grade, home))),
     menuButton('☄️', '독음 요격', '낱말을 소리내어 읽어요', 'dokeum', () => nav(dokeumGame(grade, home))),
     menuButton('🖌️', '필순 따라쓰기', '획을 순서대로 그어요', 'pilsun', () => nav(pilsunGame(grade, home))),

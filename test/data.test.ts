@@ -24,6 +24,7 @@ import { EXAMS, EXAM_PRIZE_BASE, EXAM_PRIZE_BONUS, buildQuestions, examPrizeCoun
 import { LEVELS, parseLevel, solve } from '../src/games/bloxorz'
 import { pickReward, pickRewards } from '../src/reward'
 import * as cards from '../src/cards'
+import * as srs from '../src/srs'
 import { readFileSync } from 'node:fs'
 import { LADDER as GRADE_ORDER } from '../src/data/words'
 import * as strokeStore from '../src/strokes'
@@ -271,6 +272,19 @@ for (const g of GRADE_ORDER) {
 check('합격선 아래는 기본만', examPrizeCount(0, 100, 70) === EXAM_PRIZE_BASE, `${examPrizeCount(0, 100, 70)}장`)
 // 0장을 달라고 하면 0장이어야 한다 (재응시로 합격선에 딱 걸치면 실제로 0장을 요청한다)
 check('카드 0장 요청은 0장', pickRewards('8', 0).length === 0, `${pickRewards('8', 0).length}장`)
+
+// 저장된 학습 기록에 항목이 빠져 있어도(옛 백업·손댄 파일) 다음 복습일이 NaN이 되면 안 된다.
+// NaN이 되면 그 글자는 "기한이 지난 적 없음"이 되어 영영 복습에 안 나온다 — 조용히 사라진다.
+{
+  const KEY = 'hanja-nori.srs.v1'
+  // ease가 빠진 기록
+  globalThis.localStorage?.setItem?.(KEY, JSON.stringify({ 一: { reps: 2, interval: 3, due: 1, right: 2, wrong: 0 } }))
+  srs.reload()
+  const after = srs.review('一', 'right', 1000)
+  check('기록에 항목이 빠져도 간격이 숫자로 유지됨', Number.isFinite(after.interval), `${after.interval}`)
+  check('기록에 항목이 빠져도 다음 복습일이 숫자', Number.isFinite(after.due), `${after.due}`)
+  srs.resetAll()
+}
 
 // ── 5. 블록 굴리기 레벨 ──────────────────────────────────────────
 // 손으로 그린 판은 풀 수 없는 것이 섞인다 (실제로 처음 5단계가 그랬다). BFS로 전수 검사.

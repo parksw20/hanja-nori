@@ -66,8 +66,27 @@ function fresh(): CardState {
   return { reps: 0, ease: 2.5, interval: 0, due: 0, right: 0, wrong: 0, peak: 0 }
 }
 
+/**
+ * 저장된 값을 그대로 믿지 않는다.
+ *
+ * 항목이 하나라도 빠져 있으면(옛 백업·손댄 파일) `interval * ease`가 NaN이 되고,
+ * 그러면 due도 NaN이 되어 **그 글자는 기한이 지난 적이 없는 것이 되어 영영
+ * 복습에 안 나온다.** 조용히 사라지는 종류의 고장이라 여기서 막는다.
+ */
 export function stateOf(char: string): CardState {
-  return store[char] ?? fresh()
+  const raw = store[char]
+  if (!raw) return fresh()
+  const d = fresh()
+  const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback)
+  return {
+    reps: num(raw.reps, d.reps),
+    ease: num(raw.ease, d.ease),
+    interval: num(raw.interval, d.interval),
+    due: num(raw.due, d.due),
+    right: num(raw.right, d.right),
+    wrong: num(raw.wrong, d.wrong),
+    peak: num(raw.peak, d.peak ?? 0),
+  }
 }
 
 /** 아직 한 번도 본 적 없는 글자인가 */
@@ -141,6 +160,16 @@ export function growthOf(char: string): Growth {
 export function isWilted(char: string, now = Date.now()): boolean {
   const s = store[char]
   return !!s && s.due > 0 && now - s.due > 2 * DAY
+}
+
+/**
+ * 시든 글자들 — **오래 미룬 것부터**.
+ *
+ * 정원이 온통 빨개지면 어디부터 손대야 할지 모른다. 가장 오래 내버려 둔 것이
+ * 가장 많이 잊은 것이니 그 순서로 준다.
+ */
+export function wiltedChars(all: string[], now = Date.now()): string[] {
+  return all.filter((c) => isWilted(c, now)).sort((a, b) => (store[a]?.due ?? 0) - (store[b]?.due ?? 0))
 }
 
 export interface Summary {

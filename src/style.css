@@ -1906,3 +1906,78 @@ body {
 .st-none {
   color: var(--hn-ink-dim);
 }
+
+/* ── 시든 한자 되살리기 ───────────────────────────────────── */
+
+.gd-item--revive {
+  border-color: var(--hn-bad);
+  background: linear-gradient(135deg, #3a2030, var(--hn-card));
+}
+
+.gd-item--revive .gd-item__best {
+  color: var(--hn-bad);
+}
+
+.rv-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.rv-count {
+  font-size: 1.05rem;
+  color: var(--hn-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.rv-char {
+  display: grid;
+  place-items: center;
+  width: 190px;
+  height: 190px;
+  border-radius: 24px;
+  border: 3px solid var(--hn-bad);
+  background: linear-gradient(160deg, #3a2030, var(--hn-card));
+  font-size: 7rem;
+  line-height: 1;
+}
+
+/* 맞히면 빨강이 초록으로 — 정원에서 되살아나는 것과 같은 색으로 */
+.rv-char--ok {
+  border-color: var(--hn-good);
+  background: linear-gradient(160deg, #1e3d34, var(--hn-card));
+}
+
+.rv-char--bad {
+  animation: rv-shake 0.4s ease;
+}
+
+@keyframes rv-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-9px); }
+  75% { transform: translateX(9px); }
+}
+
+.rv-hint {
+  margin: 0;
+  color: var(--hn-ink-dim);
+  font-size: 1.05rem;
+}
+
+.rv-choices {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.rv-choice {
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--hn-line);
+  background: var(--hn-card);
+  color: var(--hn-ink);
+  font-size: 1.3rem;
+  cursor: pointer;
+}
