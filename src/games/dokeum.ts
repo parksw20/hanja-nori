@@ -3,7 +3,7 @@
  * 한자어가 하늘에서 내려온다. 바닥에 닿기 전에 바른 소리(독음)를 골라 맞힌다.
  * 8급 시험의 독음 문항은 낱말을 주고 읽는 형식이라, 낱말 단위로 낸다.
  */
-import { wordsUpTo } from '../data/words'
+import { cumulative, wordsUpTo } from '../data/words'
 import type { GradeId, Word } from '../data/types'
 import * as srs from '../srs'
 import * as progress from '../progress'
@@ -27,10 +27,35 @@ export const dokeumGame =
   (grade: GradeId, home: Screen): Screen =>
   (root, nav) => {
     const POOL = wordsUpTo(grade)
+
+    /**
+     * 이번 판에 낼 낱말 차례.
+     *
+     * 그냥 다 섞으면 **아래 급수 낱말이 대부분**이라(누계라서) 새로 연 급수 글자는
+     * 어쩌다 한 번 나온다 — 4급에서 재 보니 낙하하는 낱말의 74%가 아래 급수 것이었다.
+     * 목숨이 셋뿐이라 한 판이 짧은데 그러면 새 글자를 볼 새가 없다.
+     *
+     * 그래서 **이번 급수 낱말 + 복습할 때가 된 글자 + 아직 안 배운 글자**를 앞으로 당긴다.
+     * 나머지도 뒤에 그대로 남겨 둔다 — 오래 버티면 아래 급수 복습으로 이어진다.
+     * (훈음·필순이 srs.pickSession으로 하는 것과 같은 뜻이다. 저쪽은 글자 단위,
+     *  여기는 낱말 단위라 같은 함수를 못 쓴다.)
+     */
+    function makeQueue(): Word[] {
+      const all = cumulative(grade).map((h) => h.char)
+      const due = new Set(srs.dueChars(all))
+      const front: Word[] = []
+      const back: Word[] = []
+      for (const w of POOL) {
+        const hot = w.grade === grade || [...w.word].some((c) => due.has(c) || srs.isNew(c))
+        ;(hot ? front : back).push(w)
+      }
+      return [...srs.shuffle(front), ...srs.shuffle(back)]
+    }
+
     let lives = LIVES
     let score = 0
     let solved = 0
-    let queue: Word[] = srs.shuffle(POOL)
+    let queue: Word[] = makeQueue()
     let cur: Word | null = null
     let raf = 0
     /** 이 낱말이 떨어진 시간(ms). 벽시계가 아니라 프레임 델타를 누적한다 —
@@ -48,7 +73,7 @@ export const dokeumGame =
 
     function nextWord() {
       if (over) return
-      if (queue.length === 0) queue = srs.shuffle(POOL)
+      if (queue.length === 0) queue = makeQueue()
       cur = queue.shift()!
 
       faller.textContent = cur.word
